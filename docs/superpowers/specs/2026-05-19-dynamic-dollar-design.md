@@ -41,6 +41,14 @@ Ship alongside the new command:
 - **Cleanup** of the existing codebase: drop the HTTP server stack, ~28 unused
   analytical subcommands, the cpp-httplib dependency and submodule, the web
   Dockerfile, sonar configuration, and the committed `compile_commands.json`.
+- **Strip exchange-rate machinery.** This is a US-retirement tool — the
+  Swiss/CHF cross-currency support inherited from the upstream project is
+  dead weight. Remove `scenario.exchange_set` / `exchange_rates`, the
+  `load_exchange*` data loaders, the exchange-rate branches in
+  `simulation.cpp`, and the corresponding CSV files (`ch_*.csv`,
+  `usd_chf.csv`). Happens in its own commit (commit 5) **after** the big
+  subcommand-deletion pass so the blast radius is smaller. Revises Phase 1's
+  promise that `simulation.hpp` stays untouched.
 
 Out of scope:
 
@@ -676,7 +684,7 @@ Subsequent commits must leave smoke output byte-identical.
 
 ## 9. Commit plan & quality gate
 
-Five commits, each independently buildable and **each must pass
+Six commits, each independently buildable and **each must pass
 `make && make test && bash scripts/smoke.sh`** before proceeding.
 
 | # | Commit | Tests | Pass criteria |
@@ -685,7 +693,8 @@ Five commits, each independently buildable and **each must pass
 | 2 | Convert + redesign three commands to flag-style point queries + unified formatter | unit + smoke (new flag commands) | Unit tests pass. Smoke baselines regenerated and committed *as part of this commit*. |
 | 3 | Delete HTTP server stack + cpp-httplib submodule + web Dockerfile | unit + smoke | Unit tests pass. Smoke unchanged from commit 2. Build still links. |
 | 4 | Delete unused subcommand handlers + graph helpers (largest cut, includes `failsafe_scenario` and `failsafe_swr` helpers) | unit + smoke | Unit tests pass. Smoke unchanged. Kept three commands still work. |
-| 5 | README.md + LICENSE + .gitignore + Makefile targets + delete sonar config | unit + smoke + `make compile_commands` sanity | Unit tests + smoke unchanged. `make compile_commands` runs without error if `bear` installed; no-ops gracefully otherwise. |
+| 5 | Strip exchange-rate machinery + Swiss/CHF data | unit + smoke | Unit tests pass. Smoke unchanged. `scenario` loses `exchange_set`/`exchange_rates`; `data.hpp/cpp` loses `load_exchange*`; `simulation.cpp` loses exchange-rate path; USD-baseline workaround in `dynamic::compute()` is removed; `stock-data/ch_*.csv` and `usd_chf.csv` deleted. **Note:** revises Phase 1's "leave simulation.hpp untouched" promise. |
+| 6 | README.md + LICENSE + .gitignore + Makefile targets + delete sonar config | unit + smoke + `make compile_commands` sanity | Unit tests + smoke unchanged. `make compile_commands` runs without error if `bear` installed; no-ops gracefully otherwise. |
 
 If a commit's tests fail, fix in-place before moving on. **Never proceed with
 red tests.**

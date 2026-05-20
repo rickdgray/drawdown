@@ -11,9 +11,6 @@ $(eval $(call use_cpp26))
 CXX_FLAGS += -pthread -isystem cpp-httplib
 
 $(eval $(call auto_folder_compile,src))
-# Exclude test driver from the main swr_calculator executable.
-AUTO_SRC_FILES     := $(filter-out src/test_dynamic.cpp,$(AUTO_SRC_FILES))
-AUTO_CXX_SRC_FILES := $(filter-out src/test_dynamic.cpp,$(AUTO_CXX_SRC_FILES))
 $(eval $(call auto_add_executable,swr_calculator))
 
 release_debug: release_debug_swr_calculator
@@ -27,9 +24,9 @@ clean:
 	rm -rf release_debug/
 	rm -rf debug/
 
-# Home-grown test executable. Links test_dynamic.cpp with project objects
-# as they get added (TEST_SRC is grown by later tasks).
-TEST_SRC := src/test_dynamic.cpp src/dynamic.cpp src/data.cpp \
+# Home-grown test executable. Test driver lives in tests/ so it's not
+# picked up by the src/ glob; production .cpp files are linked in explicitly.
+TEST_SRC := tests/test_dynamic.cpp src/dynamic.cpp src/data.cpp \
             src/portfolio.cpp src/simulation.cpp src/cli.cpp \
             src/output_formatter.cpp
 TEST_BIN := release_debug/test_dynamic

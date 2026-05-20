@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a `dynamic_dollar` CLI subcommand for per-year sustainable withdrawal via historical backtesting, redesign two kept commands (`swr` → `constant_dollar`, `current_wr` → `constant_percent`) as flag-style single-point queries with unified output, delete `failsafe` entirely (its functionality is subsumed by `dynamic_dollar`), and strip the HTTP server + ~28 unused analytical subcommands from the existing codebase.
+**Goal:** Add a `dynamic_dollar` CLI subcommand for per-year sustainable withdrawal via historical backtesting, redesign two kept commands (`swr` → `constant_dollar`, `current_wr` → `constant_percent`) as flag-style single-point queries with unified output, delete `failsafe` entirely (subsumed by `dynamic_dollar`), strip the HTTP server + ~28 unused analytical subcommands, and remove exchange-rate machinery + Swiss/CHF data since this is a US-only retirement tool.
 
 **Architecture:** A new `swr::dynamic::compute()` orchestrates binary search over candidate WRs by repeatedly calling the existing `swr::simulation()` engine. The CLI surface is rebuilt around a small flag parser and a unified text/JSON/CSV output formatter. Phase 1 leaves `simulation.hpp`/`scenario` untouched.
 
@@ -2775,7 +2775,142 @@ git add src/main.cpp
 
 ---
 
-## Phase 5 — README, LICENSE, .gitignore, Makefile targets, sonar (commit milestone 5)
+## Phase 4.5 — Strip exchange-rate machinery (commit milestone 5)
+
+End state: `scenario.exchange_set` / `exchange_rates` are gone. `data.hpp/cpp` no longer exposes `load_exchange*`. `simulation.cpp` no longer branches on exchange rates. The USD-baseline workaround inside `dynamic::compute()` is removed. Swiss/CHF CSVs deleted. Smoke output byte-identical. **This phase revises Phase 1's "leave simulation.hpp untouched" promise.**
+
+### Task 32: Inventory exchange-rate references
+
+**Files:** Read-only inventory; no edits.
+
+- [ ] **Step 1: Locate every reference**
+
+```
+wsl.exe -d Ubuntu -- bash -lc "cd ~/swr-calculator && grep -rn 'exchange_\|exchange_rates\|exchange_set\|load_exchange\|prepare_exchange' include/ src/ tests/"
+```
+
+Note every file and line. Expected occurrences:
+- `include/simulation.hpp`: `scenario.exchange_set`, `scenario.exchange_rates` fields
+- `include/data.hpp`: `load_exchange`, `load_exchange_inv` declarations
+- `src/data.cpp`: implementations
+- `src/simulation.cpp`: the branch that uses exchange rates (look around line 315-320 area and line 1017-1020 area)
+- `src/dynamic.cpp`: USD-baseline workaround in `compute()`
+- `src/main.cpp`: any `prepare_exchange_rates(...)` calls in kept handlers (the three converted-to-flag commands from Phase 2 may or may not still call this; verify)
+
+- [ ] **Step 2: Record the list** in your subagent report. Used by subsequent tasks.
+
+### Task 33: Strip from `simulation.hpp` + `scenario` struct
+
+**Files:** Modify `include/simulation.hpp`.
+
+- [ ] **Step 1: Delete the `exchange_set` and `exchange_rates` fields from the `scenario` struct.**
+
+- [ ] **Step 2: Delete the corresponding fields from the `operator<<(std::ostream&, const scenario&)` output (in `src/simulation.cpp` around line 1017-1018).**
+
+- [ ] **Step 3: Verify build:**
+
+```
+wsl.exe -d Ubuntu -- bash -lc "cd ~/swr-calculator && make 2>&1 | tail -20"
+```
+
+There will be compile errors in any file still referencing these fields (expected — they get fixed in Tasks 34-35). Note them but proceed.
+
+### Task 34: Strip from `simulation.cpp` + `data.hpp` + `data.cpp`
+
+**Files:** Modify `include/data.hpp`, `src/data.cpp`, `src/simulation.cpp`.
+
+- [ ] **Step 1: Remove `load_exchange` and `load_exchange_inv` declarations from `include/data.hpp`.**
+
+- [ ] **Step 2: Remove their implementations from `src/data.cpp`.**
+
+- [ ] **Step 3: In `src/simulation.cpp`, remove the exchange-rate-handling branch.** The exact lines depend on what's there. Look for usage of `scenario.exchange_set` and `scenario.exchange_rates` and rip the surrounding conditional out. Verify with `grep -n 'exchange' src/simulation.cpp` after.
+
+- [ ] **Step 4: Verify build:**
+
+```
+wsl.exe -d Ubuntu -- bash -lc "cd ~/swr-calculator && make 2>&1 | tail -20"
+```
+
+Build errors should now be confined to `src/dynamic.cpp` and possibly `src/main.cpp` (the kept command handlers).
+
+### Task 35: Remove USD-baseline workaround from `dynamic.cpp` and any leftover calls in `main.cpp`
+
+**Files:** Modify `src/dynamic.cpp`. Possibly modify `src/main.cpp`.
+
+- [ ] **Step 1: In `src/dynamic.cpp`, find the USD-baseline setup block** (around the comment `// exchange rates (USD baseline: no conversion needed, all rates = 1.0)`). Delete the whole block, including the loop populating `sc.exchange_rates`.
+
+- [ ] **Step 2: In `src/main.cpp`, check the kept command handlers (`constant_dollar_cmd`, `constant_percent_cmd`)** for any `prepare_exchange_rates(...)` calls. Remove them. Also remove the `prepare_exchange_rates` helper function itself if it's now unused.
+
+- [ ] **Step 3: Verify build + tests + smoke:**
+
+```
+wsl.exe -d Ubuntu -- bash -lc "cd ~/swr-calculator && make && make test && bash scripts/smoke.sh"
+```
+
+Expected: clean build, **all unit tests pass with same count as before**, smoke output **byte-identical** to the Phase 2 baseline.
+
+If smoke diffs, investigate. The exchange-rate strip should not affect simulation results when run on US-only assets — but verify.
+
+### Task 36: Delete unused CSV files
+
+**Files:** Delete `stock-data/ch_bonds.csv`, `stock-data/ch_stocks.csv`, `stock-data/ch_inflation.csv`, `stock-data/legacy_ch_stocks.csv`, `stock-data/usd_chf.csv`.
+
+- [ ] **Step 1: Delete the files via `git rm`:**
+
+```
+wsl.exe -d Ubuntu -- bash -lc "cd ~/swr-calculator && git rm stock-data/ch_bonds.csv stock-data/ch_stocks.csv stock-data/ch_inflation.csv stock-data/legacy_ch_stocks.csv stock-data/usd_chf.csv"
+```
+
+- [ ] **Step 2: Verify the remaining stock-data is intact:**
+
+```
+wsl.exe -d Ubuntu -- bash -lc "cd ~/swr-calculator && ls stock-data/"
+```
+
+Expected remaining files: `cash.csv`, `commodities.csv`, `ex_us_stocks.csv`, `gold.csv`, `us_bonds.csv`, `us_inflation.csv`, `us_stocks.csv`.
+
+- [ ] **Step 3: Verify tests + smoke still pass:**
+
+```
+wsl.exe -d Ubuntu -- bash -lc "cd ~/swr-calculator && make test && bash scripts/smoke.sh"
+```
+
+### Task 37: Phase 4.5 milestone — verify and stage
+
+- [ ] **Step 1: Final quality gate**
+
+```
+wsl.exe -d Ubuntu -- bash -lc "cd ~/swr-calculator && make && make test && bash scripts/smoke.sh"
+```
+
+All green.
+
+- [ ] **Step 2: Stage and inform user**
+
+```
+wsl.exe -d Ubuntu -- bash -lc "cd ~/swr-calculator && git add -u && git status --short"
+```
+
+Note: use `git add -u` to stage all modifications and deletions; new files (none expected in this phase) would need explicit `git add`.
+
+> **Phase 4.5 (commit 5) ready for review.** Exchange-rate machinery removed throughout: `scenario.exchange_set`/`exchange_rates` gone, `load_exchange*` data loaders gone, `simulation.cpp` exchange-rate path gone, USD-baseline workaround in `dynamic::compute()` gone, Swiss/CHF CSVs deleted. Suggested commit message:
+> ```
+> chore: strip exchange-rate machinery and Swiss/CHF data
+>
+> The original project supported cross-currency simulations (USD/CHF) for
+> Swiss data series. This is a US-only retirement tool; the exchange-rate
+> infrastructure was dead weight.
+>
+> Removes: scenario.exchange_{set,rates}, load_exchange{,_inv},
+> simulation.cpp exchange-rate branch, the USD-baseline workaround in
+> dynamic::compute(), stock-data/{ch_*,usd_chf}.csv.
+>
+> Revises Phase 1's "leave simulation.hpp untouched" promise.
+> ```
+
+---
+
+## Phase 5 (was Phase 5; now commit milestone 6) — README, LICENSE, .gitignore, Makefile targets, sonar
 
 End state: documentation updated, build artifacts cleaned, `make compile_commands` target added.
 
@@ -3112,10 +3247,14 @@ After Phase 5, walk through each spec section and confirm coverage:
 - [ ] Spec §6 Algorithm — covered by Tasks 3-6, 13-14
 - [ ] Spec §7 Phase 1 cleanup — covered by Tasks 21-23, 25-28
 - [ ] Spec §8 Testing — covered by Tasks 1, 3-6, 8-10, 12, 14, 16
-- [ ] Spec §9 Commit plan — covered by phase milestones (Tasks 16, 19, 23, 25, 31)
+- [ ] Spec §9 Commit plan — covered by phase milestones (Tasks 16, 19, 23, 25, 37, 31)
 - [ ] Spec §10 Open notes — addressed in the plan (SSA logic verified during this plan-writing; no simulation.cpp tweak needed)
+- [ ] Spec §1 exchange-rate strip — covered by Tasks 32-37 (Phase 4.5)
 
-> **Note:** Task 20 was removed when `failsafe → constant_dollar_max` was dropped from the spec. There is an intentional gap at that number; Tasks 21+ keep their original numbering for stability.
+> **Notes on numbering:**
+> - Task 20 was removed when `failsafe → constant_dollar_max` was dropped from the spec.
+> - Tasks 32-37 (Phase 4.5) were added mid-execution after Phase 1 completed, when the user asked to strip exchange-rate machinery. The original Phase 5 (Tasks 26-31) becomes the 6th commit milestone in the final ordering.
+> - There is an intentional gap at Task 20; the rest of the numbering is preserved for stability.
 
 ## Final notes
 
