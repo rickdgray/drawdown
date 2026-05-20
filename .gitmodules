@@ -1,3 +1,0 @@
-[submodule "include/cpp_utils"]
-	path = include/cpp_utils
-	url = git@github.com:wichtounet/cpp_utils.git
