@@ -58,4 +58,12 @@ run_one dynamic_dollar \
     --portfolio "us_stocks:60;us_bonds:40;" --inflation us_inflation \
     --rebalance yearly
 
+run_one constant_dollar \
+    constant_dollar --wr 4.0 --portfolio "us_stocks:60;us_bonds:40;" \
+    --inflation us_inflation --years 30 --rebalance yearly
+
+run_one constant_percent \
+    constant_percent --pct 4.0 --portfolio "us_stocks:60;us_bonds:40;" \
+    --inflation us_inflation --years 30 --rebalance yearly
+
 echo "Smoke: all checks passed"
