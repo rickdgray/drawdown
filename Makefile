@@ -8,7 +8,7 @@ include make-utils/cpp-utils.mk
 # Use C++26
 $(eval $(call use_cpp26))
 
-CXX_FLAGS += -pthread -isystem cpp-httplib
+CXX_FLAGS += -pthread
 
 $(eval $(call auto_folder_compile,src))
 $(eval $(call auto_add_executable,swr_calculator))
