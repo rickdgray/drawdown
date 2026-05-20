@@ -76,8 +76,6 @@ struct scenario {
     std::vector<swr::allocation> portfolio;
     data_vector                  inflation_data;
     std::vector<data_vector>     values;
-    std::vector<bool>            exchange_set;
-    std::vector<data_vector>     exchange_rates;
 
     size_t              years;
     float               wr;

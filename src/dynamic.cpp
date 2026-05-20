@@ -112,19 +112,6 @@ dynamic_result compute(const dynamic_input& input, bool collect_per_path) {
     sc.values         = load_values(sc.portfolio);
     sc.inflation_data = load_inflation(sc.values, input.inflation);
 
-    // exchange rates (USD baseline: no conversion needed, all rates = 1.0)
-    {
-        const size_t N = sc.portfolio.size();
-        sc.exchange_rates.resize(N);
-        sc.exchange_set.resize(N, false);
-        for (size_t i = 0; i < N; ++i) {
-            sc.exchange_rates[i] = sc.values[i]; // copy structure
-            for (auto& v : sc.exchange_rates[i]) {
-                v.value = 1.0f;
-            }
-        }
-    }
-
     // historical start/end years
     if (input.historical_start_year > 0)
         sc.start_year = input.historical_start_year;

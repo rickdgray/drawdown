@@ -393,20 +393,11 @@ template <size_t N>
 swr::results swr_simulation(swr::scenario& scenario) {
     auto& inflation_data = scenario.inflation_data;
     auto& values         = scenario.values;
-    auto& exchange_rates = scenario.exchange_rates;
 
     // The final results
     swr::results res;
 
     auto start_tp = chr::high_resolution_clock::now();
-
-    // For compatibility, we set up exchange_rates and exchange_sets
-
-    if (scenario.exchange_set.empty() || exchange_rates.empty()) {
-        res.message = "Invalid scenario (no exchange rates)";
-        res.error   = true;
-        return res;
-    }
 
     // 0. Make sure the years make some sense
 
@@ -467,22 +458,6 @@ swr::results swr_simulation(swr::scenario& scenario) {
         if (v.back().year < scenario.end_year) {
             scenario.end_year = v.back().year;
             changed           = true;
-        }
-    }
-
-    for (size_t i = 0; i < N; ++i) {
-        if (scenario.exchange_set[i]) {
-            auto& v = exchange_rates[i];
-
-            if (v.front().year > scenario.start_year) {
-                scenario.start_year = v.front().year;
-                changed             = true;
-            }
-
-            if (v.back().year < scenario.end_year) {
-                scenario.end_year = v.back().year;
-                changed           = true;
-            }
         }
     }
 
@@ -627,7 +602,6 @@ swr::results swr_simulation(swr::scenario& scenario) {
     bool valid = true;
     for (size_t i = 0; i < N; ++i) {
         valid &= swr::is_start_valid(values[i], scenario.start_year, 1);
-        valid &= swr::is_start_valid(exchange_rates[i], scenario.start_year, 1);
     }
 
     valid &= swr::is_start_valid(inflation_data, scenario.start_year, 1);
@@ -640,11 +614,9 @@ swr::results swr_simulation(swr::scenario& scenario) {
 
     // Prepare the starting points (for efficiency)
     std::array<swr::data_vector::const_iterator, N> start_returns;
-    std::array<swr::data_vector::const_iterator, N> start_exchanges;
 
     for (size_t i = 0; i < N; ++i) {
-        start_returns[i]   = swr::get_start(values[i], scenario.start_year, 1);
-        start_exchanges[i] = swr::get_start(exchange_rates[i], scenario.start_year, 1);
+        start_returns[i] = swr::get_start(values[i], scenario.start_year, 1);
     }
 
     auto start_inflation = swr::get_start(inflation_data, scenario.start_year, 1);
@@ -653,7 +625,6 @@ swr::results swr_simulation(swr::scenario& scenario) {
 
     std::vector<std::vector<float>>                 spending;
     std::array<swr::data_vector::const_iterator, N> returns;
-    std::array<swr::data_vector::const_iterator, N> exchanges;
 
     res.terminal_values.reserve(((scenario.end_year - scenario.start_year) - scenario.years) * 12);
 
@@ -698,7 +669,6 @@ swr::results swr_simulation(swr::scenario& scenario) {
                 current_values[i] = scenario.initial_value * (scenario.portfolio[i].allocation_ / 100.0f);
                 market_values[i]  = scenario.initial_value * (scenario.portfolio[i].allocation_ / 100.0f);
                 returns[i]        = start_returns[i]++;
-                exchanges[i]      = start_exchanges[i]++;
             }
 
             auto inflation = start_inflation++;
@@ -719,16 +689,11 @@ swr::results swr_simulation(swr::scenario& scenario) {
 
                 size_t m = 0;
                 for (m = (y == current_year ? current_month : 1); !failure && m <= (y == end_year ? end_month : 12); ++m, ++context.months) {
-                    // Adjust the portfolio with the returns and exchanges
+                    // Adjust the portfolio with the returns
                     for (size_t i = 0; i < N; ++i) {
                         current_values[i] *= returns[i]->value;
-                        current_values[i] *= exchanges[i]->value;
-
                         market_values[i] *= returns[i]->value;
-                        market_values[i] *= exchanges[i]->value;
-
                         ++returns[i];
-                        ++exchanges[i];
                     }
 
                     // Stock market losses can cause failure
@@ -1010,7 +975,7 @@ size_t swr::simulations_ran() {
 std::ostream& swr::operator<<(std::ostream& out, const scenario& scenario) {
     out << "{"
         << "portfolio=" << scenario.portfolio << " inflation=" << scenario.inflation_data.name
-        << " exchange_set=" << std::ranges::count(scenario.exchange_set, true) << " wr=" << scenario.wr << " rebalance={" << scenario.rebalance << ","
+        << " wr=" << scenario.wr << " rebalance={" << scenario.rebalance << ","
         << scenario.threshold << "}"
         << " init=" << scenario.initial_value << " years={" << scenario.years << "," << scenario.start_year << "," << scenario.end_year << "}"
         << " withdraw={" << scenario.withdraw_frequency << "," << scenario.wmethod << "," << scenario.wselection << "," << scenario.minimum << "}"

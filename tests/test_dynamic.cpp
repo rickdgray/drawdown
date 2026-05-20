@@ -392,17 +392,6 @@ TEST(dynamic_solver_matches_linear_sweep_reference) {
     sc.start_year     = sc.inflation_data.front().year;
     sc.end_year       = sc.inflation_data.back().year;
 
-    // Exchange rate setup (required by engine, USD baseline)
-    const size_t N = sc.portfolio.size();
-    sc.exchange_rates.resize(N);
-    sc.exchange_set.resize(N, false);
-    for (size_t i = 0; i < N; ++i) {
-        sc.exchange_rates[i] = sc.values[i];
-        for (auto& v : sc.exchange_rates[i]) {
-            v.value = 1.0f;
-        }
-    }
-
     // To save time, narrow the sweep around dynamic_wr_pct ±0.5% at fine step.
     const float step = 0.01f;
     const float sweep_lo = std::max(0.5f, dynamic_wr_pct - 0.5f);

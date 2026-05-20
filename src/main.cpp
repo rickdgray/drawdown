@@ -332,14 +332,6 @@ int constant_dollar_cmd(const std::vector<std::string>& args) {
         sc.start_year = sy > 0 ? sy : sc.inflation_data.front().year;
         sc.end_year   = ey > 0 ? ey : sc.inflation_data.back().year;
 
-        // exchange rates (USD baseline)
-        const size_t N = sc.portfolio.size();
-        sc.exchange_rates.resize(N);
-        sc.exchange_set.resize(N, false);
-        for (size_t i = 0; i < N; ++i) {
-            sc.exchange_rates[i] = sc.values[i];
-            for (auto& v : sc.exchange_rates[i]) v.value = 1.0f;
-        }
     } catch (const std::exception& e) {
         swr::output::emit_error(std::cerr, "constant_dollar",
             std::string("flag parse error: ") + e.what(), mode);
@@ -520,14 +512,6 @@ int constant_percent_cmd(const std::vector<std::string>& args) {
         sc.start_year = sy > 0 ? sy : sc.inflation_data.front().year;
         sc.end_year   = ey > 0 ? ey : sc.inflation_data.back().year;
 
-        // exchange rates (USD baseline)
-        const size_t N = sc.portfolio.size();
-        sc.exchange_rates.resize(N);
-        sc.exchange_set.resize(N, false);
-        for (size_t i = 0; i < N; ++i) {
-            sc.exchange_rates[i] = sc.values[i];
-            for (auto& v : sc.exchange_rates[i]) v.value = 1.0f;
-        }
     } catch (const std::exception& e) {
         swr::output::emit_error(std::cerr, "constant_percent",
             std::string("flag parse error: ") + e.what(), mode);
