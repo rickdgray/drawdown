@@ -1,6 +1,6 @@
 default: release_debug
 
-.PHONY: default release debug all clean
+.PHONY: default release debug all clean test
 
 include make-utils/flags.mk
 include make-utils/cpp-utils.mk
@@ -11,6 +11,9 @@ $(eval $(call use_cpp26))
 CXX_FLAGS += -pthread -isystem cpp-httplib
 
 $(eval $(call auto_folder_compile,src))
+# Exclude test driver from the main swr_calculator executable.
+AUTO_SRC_FILES     := $(filter-out src/test_dynamic.cpp,$(AUTO_SRC_FILES))
+AUTO_CXX_SRC_FILES := $(filter-out src/test_dynamic.cpp,$(AUTO_CXX_SRC_FILES))
 $(eval $(call auto_add_executable,swr_calculator))
 
 release_debug: release_debug_swr_calculator
@@ -23,5 +26,22 @@ clean:
 	rm -rf release/
 	rm -rf release_debug/
 	rm -rf debug/
+
+# Home-grown test executable. Links test_dynamic.cpp with project objects
+# as they get added (TEST_SRC is grown by later tasks).
+TEST_SRC := src/test_dynamic.cpp src/dynamic.cpp src/data.cpp \
+            src/portfolio.cpp src/simulation.cpp src/cli.cpp \
+            src/output_formatter.cpp
+TEST_BIN := release_debug/test_dynamic
+
+$(TEST_BIN): $(TEST_SRC) include/test_assert.hpp include/dynamic.hpp \
+             include/data.hpp include/portfolio.hpp include/simulation.hpp \
+             include/cli.hpp include/output_formatter.hpp
+	@mkdir -p release_debug
+	$(cxx) $(CXX_FLAGS) -Iinclude -o $@ $(TEST_SRC)
+
+.PHONY: test
+test: $(TEST_BIN)
+	$(TEST_BIN)
 
 include make-utils/cpp-utils-finalize.mk

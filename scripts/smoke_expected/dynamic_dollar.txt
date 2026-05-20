@@ -1,0 +1,17 @@
+dynamic_dollar
+
+Inputs
+  Current balance:      $850000
+  Current age:          67.00
+  End age:              92
+  Remaining horizon:    25 years
+  Target success:       80.0%
+
+Results
+  Raw calculated:       $43538
+  Smoothed:             $43538
+  Final budget:         $43538
+  Success at budget:    80.0%
+  SSA offset this year: $0
+  Portfolio withdrawal: $43538
+  Signal vs prior:      none
