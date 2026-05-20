@@ -1,44 +1,81 @@
-default: release_debug
+# swr_calculator build
+#
+# Targets:
+#   make / make release_debug  - default; optimized with debug info (-O2 -g -march=native)
+#   make release               - fully optimized (-O3 -g -DNDEBUG -fomit-frame-pointer -march=native)
+#   make debug                 - debug build (-g, no optimization)
+#   make all                   - all three
+#   make test                  - build and run the unit test binary
+#   make clean                 - remove build directories
 
-.PHONY: default release debug all clean test
+CXX      := g++-15
+CXXFLAGS := -std=c++26 -Iinclude -Wextra -Wall -Wuninitialized -Wno-long-long -Winit-self -pthread
 
-include make-utils/flags.mk
-include make-utils/cpp-utils.mk
+RELEASE_FLAGS       := -g -DNDEBUG -O3 -fomit-frame-pointer -march=native
+RELEASE_DEBUG_FLAGS := -g -O2 -march=native
+DEBUG_FLAGS         := -g
 
-# Use C++26
-$(eval $(call use_cpp26))
+# Source discovery
+SRC_FILES := $(wildcard src/*.cpp)
 
-CXX_FLAGS += -pthread
+OBJ_RELEASE       := $(SRC_FILES:src/%.cpp=release/%.o)
+OBJ_RELEASE_DEBUG := $(SRC_FILES:src/%.cpp=release_debug/%.o)
+OBJ_DEBUG         := $(SRC_FILES:src/%.cpp=debug/%.o)
 
-$(eval $(call auto_folder_compile,src))
-$(eval $(call auto_add_executable,swr_calculator))
+# Dependency files for incremental builds
+DEP_RELEASE       := $(OBJ_RELEASE:.o=.d)
+DEP_RELEASE_DEBUG := $(OBJ_RELEASE_DEBUG:.o=.d)
+DEP_DEBUG         := $(OBJ_DEBUG:.o=.d)
 
-release_debug: release_debug_swr_calculator
-release: release_swr_calculator
-debug: debug_swr_calculator
-
-all: release release_debug debug
-
-clean:
-	rm -rf release/
-	rm -rf release_debug/
-	rm -rf debug/
-
-# Home-grown test executable. Test driver lives in tests/ so it's not
-# picked up by the src/ glob; production .cpp files are linked in explicitly.
-TEST_SRC := tests/test_dynamic.cpp src/dynamic.cpp src/data.cpp \
-            src/portfolio.cpp src/simulation.cpp src/cli.cpp \
-            src/output_formatter.cpp
+# Test driver: links production sources (excluding main.cpp) with the test main
+TEST_SRC := tests/test_dynamic.cpp \
+            $(filter-out src/main.cpp,$(SRC_FILES))
 TEST_BIN := release_debug/test_dynamic
 
-$(TEST_BIN): $(TEST_SRC) include/test_assert.hpp include/dynamic.hpp \
-             include/data.hpp include/portfolio.hpp include/simulation.hpp \
-             include/cli.hpp include/output_formatter.hpp
-	@mkdir -p release_debug
-	$(cxx) $(CXX_FLAGS) -Iinclude -o $@ $(TEST_SRC)
+.PHONY: default release release_debug debug all clean test
+default: release_debug
 
-.PHONY: test
+release:       release/swr_calculator
+release_debug: release_debug/swr_calculator
+debug:         debug/swr_calculator
+all:           release release_debug debug
+
+# Per-mode pattern rules for compilation
+release/%.o: src/%.cpp
+	@mkdir -p release
+	$(CXX) $(CXXFLAGS) $(RELEASE_FLAGS) -MMD -MP -c $< -o $@
+
+release_debug/%.o: src/%.cpp
+	@mkdir -p release_debug
+	$(CXX) $(CXXFLAGS) $(RELEASE_DEBUG_FLAGS) -MMD -MP -c $< -o $@
+
+debug/%.o: src/%.cpp
+	@mkdir -p debug
+	$(CXX) $(CXXFLAGS) $(DEBUG_FLAGS) -MMD -MP -c $< -o $@
+
+# Linking
+release/swr_calculator: $(OBJ_RELEASE)
+	@mkdir -p release
+	$(CXX) $(CXXFLAGS) $(RELEASE_FLAGS) -o $@ $^
+
+release_debug/swr_calculator: $(OBJ_RELEASE_DEBUG)
+	@mkdir -p release_debug
+	$(CXX) $(CXXFLAGS) $(RELEASE_DEBUG_FLAGS) -o $@ $^
+
+debug/swr_calculator: $(OBJ_DEBUG)
+	@mkdir -p debug
+	$(CXX) $(CXXFLAGS) $(DEBUG_FLAGS) -o $@ $^
+
+# Test target: compile the test main + production sources (no main.cpp)
+$(TEST_BIN): $(TEST_SRC) $(wildcard include/*.hpp)
+	@mkdir -p release_debug
+	$(CXX) $(CXXFLAGS) $(RELEASE_DEBUG_FLAGS) -o $@ $(TEST_SRC)
+
 test: $(TEST_BIN)
 	$(TEST_BIN)
 
-include make-utils/cpp-utils-finalize.mk
+clean:
+	rm -rf release release_debug debug
+
+# Include generated dependency files
+-include $(DEP_RELEASE) $(DEP_RELEASE_DEBUG) $(DEP_DEBUG)
