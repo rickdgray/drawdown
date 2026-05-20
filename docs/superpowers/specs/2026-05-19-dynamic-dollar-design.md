@@ -18,12 +18,26 @@ simulator.
 
 Ship alongside the new command:
 
-- **Renames** of the three retained existing commands to methodology-clear
-  names (`swr` → `constant_dollar`, `failsafe` → `constant_dollar_max`,
-  `current_wr` → `constant_percent`).
-- **Conversion** of all four commands from positional args to flag-style.
-- **Unified output** template across all four commands (text default, `--json`,
-  `--csv`).
+- **Redesign two retained commands as single-point queries.** The existing
+  `swr` and `current_wr` are research-style sweep/solver tools whose behavior
+  doesn't fit alongside the new per-year point query. They get reshaped (not
+  just renamed) into single-scenario evaluators:
+  - `swr` → **`constant_dollar`** (single-WR evaluator). Drops the built-in
+    "sweep 6%→2% and return the highest WR meeting 95%" behavior. The new
+    command evaluates one WR over one portfolio and reports the success rate.
+  - `current_wr` → **`constant_percent`** (single-pct evaluator). Drops the
+    portfolio-allocation sweep, the WR sweep, and the STANDARD-methodology
+    override. The new command evaluates one fixed percent of current balance
+    over one portfolio and reports success rate + spending stats.
+- **Delete `failsafe`.** Its sweep-and-solve behavior is functionally
+  subsumed by `dynamic_dollar` (set `--current_age 0 --end_age <years>
+  --balance <initial>` and you get the same answer). Its portfolio-allocation
+  sweep and multi-threshold reporting are dropped — users can drive sweeps
+  with shell loops if needed.
+- **Conversion** of the three remaining commands from positional args to
+  flag-style.
+- **Unified output** template across all three commands (text default,
+  `--json`, `--csv`).
 - **Cleanup** of the existing codebase: drop the HTTP server stack, ~28 unused
   analytical subcommands, the cpp-httplib dependency and submodule, the web
   Dockerfile, sonar configuration, and the committed `compile_commands.json`.
@@ -86,12 +100,12 @@ test_dynamic.cpp   ─depends on─▶  dynamic.hpp (+ a tiny assertion header)
 
 ### Final binary surface
 
-After Phase 1, `swr_calculator` exposes exactly four subcommands:
+After Phase 1, `swr_calculator` exposes exactly three subcommands:
 
 - `constant_dollar` — evaluate a single fixed (real) dollar withdrawal scenario
-- `constant_dollar_max` — solve for the highest fixed-dollar WR hitting a goal
-- `constant_percent` — withdraw a fixed percent of current balance each year
-- `dynamic_dollar` — the new per-year point query
+- `constant_percent` — evaluate a fixed-percent-of-current-balance scenario
+- `dynamic_dollar` — the new per-year point query (also subsumes the
+  old `failsafe`-style max-WR solver)
 
 ---
 
@@ -181,7 +195,7 @@ Notes on type choices:
 
 ## 4. CLI design
 
-### Conventions (shared across all four commands)
+### Conventions (shared across all three commands)
 
 - Long flags only (`--foo`).
 - Value form `--foo value` or `--foo=value`.
@@ -200,9 +214,9 @@ Notes on type choices:
 | `--rebalance` | `none \| monthly \| yearly \| threshold` | all |
 | `--start_year` | Earliest backtest start year | all |
 | `--end_year` | Latest backtest start year | all |
-| `--years` | Horizon length (years) | constant_dollar, constant_dollar_max, constant_percent |
-| `--initial_value` | Starting portfolio (dollars) | constant_dollar, constant_dollar_max, constant_percent |
-| `--target_success` | Target success rate (percent) | constant_dollar_max, dynamic_dollar |
+| `--years` | Horizon length (years) | constant_dollar, constant_percent |
+| `--initial_value` | Starting portfolio (dollars) | constant_dollar, constant_percent |
+| `--target_success` | Target success rate (percent) | dynamic_dollar (also optional pass/fail check on constant_dollar) |
 | `--withdraw_frequency` | 1 (monthly) or 12 (yearly) | all |
 | `--fees` | TER as a fraction (e.g. `0.001` = 0.1%) | all |
 | `--json` | Machine-readable JSON output | all |
@@ -243,14 +257,6 @@ Notes on type choices:
 `--json`, `--csv`
 **Advanced:** `--withdraw_frequency`, `--fees`
 
-### `constant_dollar_max` flag schema
-
-**Required:** `--target_success <pct>`, `--portfolio`, `--inflation`, `--years`
-**Common:** `--rebalance`, `--start_year`, `--end_year`, `--initial_value`,
-`--search_min_wr` (default 2.0), `--search_max_wr` (default 8.0),
-`--search_step` (default 0.05), `--json`, `--csv`
-**Advanced:** `--withdraw_frequency`, `--fees`
-
 ### `constant_percent` flag schema
 
 **Required:** `--pct <pct>`, `--portfolio`, `--inflation`, `--years`
@@ -278,7 +284,7 @@ In `--json` mode, the error is JSON:
 
 ## 5. Output formats
 
-All four commands emit the same three-section structure in **text** and **JSON**
+All three commands emit the same three-section structure in **text** and **JSON**
 modes: `inputs`, `results`, optional `notes`. **CSV** mode emits per-path detail
 rows.
 
@@ -348,7 +354,7 @@ Conventions:
 ### CSV (`--csv`)
 
 One row per historical start year used in the backtest. Same header columns
-across all four commands.
+across all three commands.
 
 ```
 # command: dynamic_dollar
@@ -373,7 +379,6 @@ Columns:
 Per-command CSV row semantics:
 
 - `constant_dollar` — outcomes at `--wr`
-- `constant_dollar_max` — outcomes at the *solved-for* max WR
 - `constant_percent` — outcomes at `--pct`
 - `dynamic_dollar` — outcomes at `final_spending_budget`
 
@@ -521,8 +526,10 @@ The deletion work ships alongside the new feature, broken into safe commits.
 
 **Subcommand handlers + dispatch branches:**
 
-Keep handlers for `swr` → `constant_dollar`, `failsafe` → `constant_dollar_max`,
-`current_wr` → `constant_percent`, plus the new `dynamic_dollar`. Delete:
+Keep handlers only for the redesigned `swr` → `constant_dollar` and
+`current_wr` → `constant_percent`, plus the new `dynamic_dollar`. **Delete
+`failsafe_scenario` entirely** (its functionality is subsumed by
+`dynamic_dollar`). Delete:
 
 `fixed_scenario`, `multiple_swr_scenario`, `withdraw_frequency_scenario`,
 `frequency_scenario`, `analysis_scenario`, `portfolio_analysis_scenario`,
@@ -541,9 +548,10 @@ Keep handlers for `swr` → `constant_dollar`, `failsafe` → `constant_dollar_m
 `print_multiple_wr_help`, `print_withdraw_frequency_help`, `print_frequency_help`.
 Replaced with per-command `--help` rendering driven by the flag-parser schema.
 
-**Output/graph helpers** — each must be verified unused by the four kept
-handlers (`single_swr_scenario`, `failsafe_scenario`, `current_wr_scenario`,
-and the new `dynamic_dollar_cmd`) **before deletion**. Candidates:
+**Output/graph helpers** — each must be verified unused by the three kept
+handlers (`single_swr_scenario` → `constant_dollar_cmd`, `current_wr_scenario`
+→ `constant_percent_cmd`, and the new `dynamic_dollar_cmd`) **before deletion**.
+Candidates:
 
 - `GraphBase`, `Graph` (only used by `*_graph` commands)
 - `multiple_wr`, `multiple_wr_graph`, `multiple_wr_sheets`
@@ -557,10 +565,10 @@ and the new `dynamic_dollar_cmd`) **before deletion**. Candidates:
 - `configure_withdrawal_method`, `csv_print`
 
 Note: the standalone `failsafe_swr(scenario, start, end, step, goal, out)`
-worker (line ~645) and its `(title, ...)` overload (line ~659) **may be
-used by the kept `failsafe_scenario` handler**. Verify usage before deciding
-whether to inline, simplify, or delete. The intent is to keep the
-`constant_dollar_max` command's behavior identical to today's `failsafe`.
+worker (line ~645) and its `(title, ...)` overload (line ~659) are also
+deleted along with `failsafe_scenario`. The redesigned `constant_dollar`
+is now a single-WR evaluator (it does **not** preserve `single_swr_scenario`'s
+old built-in 6%→2% sweep behavior — that sweep is dropped).
 
 **Estimated result:** `main.cpp` shrinks from ~4012 to ~600–800 lines.
 
@@ -568,9 +576,8 @@ whether to inline, simplify, or delete. The intent is to keep the
 
 - Tiny flag parser (~100 lines): `parsed_args parse_flags(args, schema)`, with
   `schema` describing required/common/advanced flags per command.
-- Four handler functions, rewritten to use the flag parser + shared formatter:
-  `constant_dollar_cmd`, `constant_dollar_max_cmd`, `constant_percent_cmd`,
-  `dynamic_dollar_cmd`.
+- Three handler functions, rewritten to use the flag parser + shared formatter:
+  `constant_dollar_cmd`, `constant_percent_cmd`, `dynamic_dollar_cmd`.
 - Top-level dispatch + global `--help`.
 
 ### New files
@@ -595,7 +602,7 @@ whether to inline, simplify, or delete. The intent is to keep the
 ### Repo hygiene
 
 - `README.rst` → `README.md`, converted to Markdown and rewritten to describe
-  the four current commands. Delete `README.rst`.
+  the three current commands. Delete `README.rst`.
 - `LICENSE`: keep MIT. Add a new copyright line for Rick Gray:
   ```
   Copyright Baptiste Wicht 2019-2024.
@@ -608,7 +615,7 @@ whether to inline, simplify, or delete. The intent is to keep the
 Pruning `scenario` struct fields whose code paths are now dead (`glidepath`,
 `vanguard_max_increase`, `dwz_floor`, `flexibility_*`, etc.) and their
 handling in `simulation.cpp`. Higher risk — would require careful testing of
-the four kept commands. Deferred to a separate spec if/when desired.
+the three kept commands. Deferred to a separate spec if/when desired.
 
 ---
 
@@ -637,29 +644,29 @@ No external dependency.
 
 ### Property test
 
-> With **smoothing disabled** and **SSA disabled**, `dynamic_dollar` and
-> `constant_dollar_max` produce **the same WR within a small tolerance** for
-> the same horizon, same balance (treated as `--initial_value`), same portfolio,
-> same target_success, same data window.
+> With **smoothing disabled** and **SSA disabled**, `dynamic::compute()`'s
+> binary-search solver produces **the same WR within a small tolerance** as
+> a reference linear sweep over the same `swr::scenario`.
 
-**Tolerance note:** `constant_dollar_max` uses a linear sweep with step
-`--search_step` (default 0.05). `dynamic_dollar` uses binary search to
-`--solver_tolerance` dollars (default $1 ≈ 0.0001% at typical balances).
-The two algorithms can land on neighboring grid points. The test asserts:
+The reference linear sweep is implemented **inside the test file** — it is
+not production code. The test constructs a `swr::scenario` matching the
+`dynamic_input` configuration, sweeps WR from 0.5% to 20% at a fine step
+(e.g. 0.01%), and tracks the highest WR achieving `target_success`. The
+property test then asserts:
 
 ```
-|dynamic_dollar_wr_pct - constant_dollar_max_wr_pct| <= constant_dollar_max_search_step
+|dynamic_solver_wr_pct - linear_sweep_max_wr_pct| <= 0.05
 ```
 
-Or, to compare more tightly, the test can run `constant_dollar_max` with
-`--search_step 0.01` and assert the gap is ≤ 0.01.
+The 0.05 tolerance covers the linear sweep's step granularity plus the
+binary-search residual. Tighten by reducing the sweep step if needed.
 
-This catches solver bugs, scenario-construction field-mapping bugs, and WR↔dollar
-conversion errors.
+This catches solver bugs (wrong direction, off-by-one), scenario-construction
+field-mapping bugs, and WR↔dollar conversion errors.
 
 ### Smoke tests
 
-`scripts/smoke.sh` runs each of the four commands with a canonical scenario,
+`scripts/smoke.sh` runs each of the three commands with a canonical scenario,
 saves output to `scripts/smoke_expected/`. Re-run after changes to spot diffs.
 Not unit tests — regression sanity for CLI output. Smoke baselines are
 regenerated **only at commit 2** (where output format intentionally changes).
@@ -675,9 +682,9 @@ Five commits, each independently buildable and **each must pass
 | # | Commit | Tests | Pass criteria |
 |---|---|---|---|
 | 1 | Add `dynamic.hpp/.cpp` + `output_formatter` + tests | unit + smoke (old positional commands) | All unit tests pass. Existing commands unchanged. `dynamic_dollar` works against test scenarios. |
-| 2 | Convert four commands to flag-style + unified formatter | unit + smoke (new flag commands) | Unit tests pass. Smoke baselines regenerated and committed *as part of this commit*. |
+| 2 | Convert + redesign three commands to flag-style point queries + unified formatter | unit + smoke (new flag commands) | Unit tests pass. Smoke baselines regenerated and committed *as part of this commit*. |
 | 3 | Delete HTTP server stack + cpp-httplib submodule + web Dockerfile | unit + smoke | Unit tests pass. Smoke unchanged from commit 2. Build still links. |
-| 4 | Delete unused subcommand handlers + graph helpers (largest cut) | unit + smoke | Unit tests pass. Smoke unchanged. Kept four commands still work. |
+| 4 | Delete unused subcommand handlers + graph helpers (largest cut, includes `failsafe_scenario` and `failsafe_swr` helpers) | unit + smoke | Unit tests pass. Smoke unchanged. Kept three commands still work. |
 | 5 | README.md + LICENSE + .gitignore + Makefile targets + delete sonar config | unit + smoke + `make compile_commands` sanity | Unit tests + smoke unchanged. `make compile_commands` runs without error if `bear` installed; no-ops gracefully otherwise. |
 
 If a commit's tests fail, fix in-place before moving on. **Never proceed with
@@ -697,7 +704,7 @@ red tests.**
   only honors `social_coverage` (a fraction-of-spending model) and ignores
   `social_amount` when coverage is 0, a minimal one-branch tweak goes in
   alongside commit 1.
-- `README.md` rewrite content needs the four commands' updated `--help` text
+- `README.md` rewrite content needs the three commands' updated `--help` text
   to be quoted accurately; finalized as part of commit 5 after the new help
   text is stabilized.
 - Build is Linux-only (Makefile, pthread, POSIX). Implementation must happen
