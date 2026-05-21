@@ -1,4 +1,4 @@
-constant_dollar
+constant-dollar
 
 Inputs
   Portfolio:            us_stocks:60;us_bonds:40;

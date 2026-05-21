@@ -1,4 +1,4 @@
-constant_percent
+constant-percent
 
 Inputs
   Portfolio:            us_stocks:60;us_bonds:40;

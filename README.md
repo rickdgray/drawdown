@@ -4,18 +4,18 @@ Compute sustainable retirement withdrawals using historical backtesting against 
 
 Three CLI commands answer three different questions:
 
-- **`constant_dollar`**: "If I withdraw X% per year (inflation-adjusted), how often does that survive my horizon?" (The 4% rule.)
-- **`constant_percent`**: "If I withdraw X% of my current balance each year, how often does that survive?"
-- **`dynamic_dollar`**: "Given my current balance and remaining years, how much can I sustainably spend this year?"
+- **`constant-dollar`**: "If I withdraw X% per year (inflation-adjusted), how often does that survive my horizon?" (The 4% rule.)
+- **`constant-percent`**: "If I withdraw X% of my current balance each year, how often does that survive?"
+- **`dynamic-dollar`**: "Given my current balance and remaining years, how much can I sustainably spend this year?"
 
 ## Quick start
 
 ```
-drawdown dynamic_dollar -b 850000 -a 67 -e 92 -p "us_stocks:60;us_bonds:40;"
+drawdown dynamic-dollar -b 850000 -a 67 -e 92 -p "us_stocks:60;us_bonds:40;"
 ```
 
 ```
-dynamic_dollar
+dynamic-dollar
 
 Inputs
   Current balance:      $850000
@@ -36,7 +36,7 @@ Results
 
 ## Commands
 
-### `constant_dollar`: fixed real-dollar withdrawal (the 4% rule)
+### `constant-dollar`: fixed real-dollar withdrawal (the 4% rule)
 
 Evaluate the success rate of withdrawing a fixed real dollar amount each year. The dollar amount is set at retirement as a percent of the *initial* portfolio, then adjusted nominally for inflation thereafter. This is the canonical 4% rule methodology.
 
@@ -45,13 +45,13 @@ Evaluate the success rate of withdrawing a fixed real dollar amount each year. T
 The classic Trinity 4% / 30 years / 60-40 portfolio (short flags):
 
 ```
-drawdown constant_dollar -w 4 -p "us_stocks:60;us_bonds:40;" -y 30 -r yearly
+drawdown constant-dollar -w 4 -p "us_stocks:60;us_bonds:40;" -y 30 -r yearly
 ```
 
 A more conservative FIRE scenario with 3.5% over 50 years, 100% stocks:
 
 ```
-drawdown constant_dollar --withdrawal-rate 3.5 \
+drawdown constant-dollar --withdrawal-rate 3.5 \
     --portfolio "us_stocks:100;" \
     --inflation us_inflation --years 50 --rebalance yearly
 ```
@@ -59,7 +59,7 @@ drawdown constant_dollar --withdrawal-rate 3.5 \
 Pass/fail against a 95% success target:
 
 ```
-drawdown constant_dollar --withdrawal-rate 4 --target-success 95 \
+drawdown constant-dollar --withdrawal-rate 4 --target-success 95 \
     --portfolio "us_stocks:60;us_bonds:40;" \
     --inflation us_inflation --years 30 --rebalance yearly
 ```
@@ -96,7 +96,7 @@ drawdown constant_dollar --withdrawal-rate 4 --target-success 95 \
 
 ---
 
-### `constant_percent`: fixed percent of current balance
+### `constant-percent`: fixed percent of current balance
 
 Withdraw a fixed percent of the *current* (not initial) portfolio balance each year. The dollar amount fluctuates with the portfolio; no inflation adjustment to the percent itself. This is what many mistakenly believe the 4% rule is.
 
@@ -105,13 +105,13 @@ Withdraw a fixed percent of the *current* (not initial) portfolio balance each y
 4% of current balance over 30 years on a 60-40 (short flags):
 
 ```
-drawdown constant_percent -pct 4 -p "us_stocks:60;us_bonds:40;" -y 30 -r yearly
+drawdown constant-percent -pct 4 -p "us_stocks:60;us_bonds:40;" -y 30 -r yearly
 ```
 
 Same scenario but with a higher minimum spending floor (3.5% of initial):
 
 ```
-drawdown constant_percent --percent 4 --minimum-floor 3.5 \
+drawdown constant-percent --percent 4 --minimum-floor 3.5 \
     --portfolio "us_stocks:60;us_bonds:40;" \
     --inflation us_inflation --years 30 --rebalance yearly
 ```
@@ -148,7 +148,7 @@ drawdown constant_percent --percent 4 --minimum-floor 3.5 \
 
 ---
 
-### `dynamic_dollar`: per-year sustainable withdrawal
+### `dynamic-dollar`: per-year sustainable withdrawal
 
 A per-year point query. Given the current portfolio balance, current age, fixed end age, and a target success rate, find this year's sustainable annual withdrawal by historical backtesting over the remaining horizon. Designed to be re-run annually with updated balance and age.
 
@@ -157,13 +157,13 @@ A per-year point query. Given the current portfolio balance, current age, fixed 
 The basic question: "I'm 67, have $850K, plan to live until 92, and want 80% success" (short flags):
 
 ```
-drawdown dynamic_dollar -b 850000 -a 67 -e 92 -p "us_stocks:60;us_bonds:40;"
+drawdown dynamic-dollar -b 850000 -a 67 -e 92 -p "us_stocks:60;us_bonds:40;"
 ```
 
 With Social Security starting at age 70 ($24K/year):
 
 ```
-drawdown dynamic_dollar --balance 850000 \
+drawdown dynamic-dollar --balance 850000 \
     --current-age 67 --end-age 92 \
     --portfolio "us_stocks:60;us_bonds:40;" \
     --inflation us_inflation \
@@ -173,7 +173,7 @@ drawdown dynamic_dollar --balance 850000 \
 Next year's run, with smoothing to prevent year-over-year shocks:
 
 ```
-drawdown dynamic_dollar --balance 820000 \
+drawdown dynamic-dollar --balance 820000 \
     --current-age 68 --end-age 92 \
     --portfolio "us_stocks:60;us_bonds:40;" \
     --inflation us_inflation \
@@ -184,7 +184,7 @@ drawdown dynamic_dollar --balance 820000 \
 A more conservative target (90% success):
 
 ```
-drawdown dynamic_dollar --balance 850000 \
+drawdown dynamic-dollar --balance 850000 \
     --current-age 67 --end-age 92 --target-success 90 \
     --portfolio "us_stocks:60;us_bonds:40;" \
     --inflation us_inflation

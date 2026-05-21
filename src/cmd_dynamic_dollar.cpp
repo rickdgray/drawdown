@@ -24,14 +24,14 @@ namespace {
 swr::cli::command_schema dynamic_dollar_schema() {
     using namespace swr::cli;
     command_schema s;
-    s.command_name = "dynamic_dollar";
+    s.command_name = "dynamic-dollar";
     s.one_line_description =
         "Compute this year's sustainable withdrawal given current portfolio "
         "reality,\n  using historical backtesting over the remaining horizon.";
     s.example_invocation =
-        "drawdown dynamic_dollar -b 850000 -a 67 -e 92 "
+        "drawdown dynamic-dollar -b 850000 -a 67 -e 92 "
         "-p \"us_stocks:60;us_bonds:40;\"\n"
-        "  drawdown dynamic_dollar --balance 850000 --current-age 67 "
+        "  drawdown dynamic-dollar --balance 850000 --current-age 67 "
         "--end-age 92 \\\n    --portfolio \"us_stocks:60;us_bonds:40;\" "
         "--inflation us_inflation";
 
@@ -76,7 +76,7 @@ int dynamic_dollar(const std::vector<std::string>& args) {
             if (a == "--json" || a == "-j") mode = swr::output::Mode::JSON;
             else if (a == "--csv" || a == "-c") mode = swr::output::Mode::CSV;
         }
-        swr::output::emit_error(std::cerr, "dynamic_dollar", e.what(), mode);
+        swr::output::emit_error(std::cerr, "dynamic-dollar", e.what(), mode);
         return 1;
     }
 
@@ -111,7 +111,7 @@ int dynamic_dollar(const std::vector<std::string>& args) {
             std::stoul(swr::cli::get_value(p, schema, "ssa-start-age")));
         if (ssa_income > 0.0f) {
             if (ssa_age == 0) {
-                swr::output::emit_error(std::cerr, "dynamic_dollar",
+                swr::output::emit_error(std::cerr, "dynamic-dollar",
                     "--ssa-income > 0 requires --ssa-start-age", mode);
                 return 1;
             }
@@ -124,7 +124,7 @@ int dynamic_dollar(const std::vector<std::string>& args) {
         float prior     = std::stof(swr::cli::get_value(p, schema, "prior-amount"));
         if (smoothing > 0.0f) {
             if (prior <= 0.0f) {
-                swr::output::emit_error(std::cerr, "dynamic_dollar",
+                swr::output::emit_error(std::cerr, "dynamic-dollar",
                     "--smoothing > 0 requires --prior-amount", mode);
                 return 1;
             }
@@ -143,7 +143,7 @@ int dynamic_dollar(const std::vector<std::string>& args) {
         in.solver_tolerance = std::stof(
             swr::cli::get_value(p, schema, "solver-tolerance"));
     } catch (const std::exception& e) {
-        swr::output::emit_error(std::cerr, "dynamic_dollar",
+        swr::output::emit_error(std::cerr, "dynamic-dollar",
             std::string("flag parse error: ") + e.what(), mode);
         return 1;
     }
@@ -152,13 +152,13 @@ int dynamic_dollar(const std::vector<std::string>& args) {
     bool collect_csv = (mode == swr::output::Mode::CSV);
     auto r = swr::compute(in, collect_csv);
     if (r.error) {
-        swr::output::emit_error(std::cerr, "dynamic_dollar", r.message, mode);
+        swr::output::emit_error(std::cerr, "dynamic-dollar", r.message, mode);
         return 1;
     }
 
     // Build report and emit.
     swr::output::report rep;
-    rep.command_name = "dynamic_dollar";
+    rep.command_name = "dynamic-dollar";
     {
         swr::output::section sec;
         sec.name  = "inputs";
@@ -211,7 +211,7 @@ int dynamic_dollar(const std::vector<std::string>& args) {
             "start_year", "start_month", "success",
             "terminal_value", "total_withdrawn", "worst_duration_months"};
         std::stringstream pre;
-        pre << "command: dynamic_dollar";
+        pre << "command: dynamic-dollar";
         rep.csv_data.preamble_comments.push_back(pre.str());
         for (auto& d : r.per_path_details) {
             swr::output::csv_row row;

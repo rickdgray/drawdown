@@ -50,18 +50,18 @@ run_one() {
     echo "Smoke OK: $name"
 }
 
-run_one dynamic_dollar \
-    dynamic_dollar \
+run_one dynamic-dollar \
+    dynamic-dollar \
     --balance 850000 --current-age 67 --end-age 92 \
     --portfolio "us_stocks:60;us_bonds:40;" --inflation us_inflation \
     --rebalance yearly
 
-run_one constant_dollar \
-    constant_dollar --withdrawal-rate 4.0 --portfolio "us_stocks:60;us_bonds:40;" \
+run_one constant-dollar \
+    constant-dollar --withdrawal-rate 4.0 --portfolio "us_stocks:60;us_bonds:40;" \
     --inflation us_inflation --years 30 --rebalance yearly
 
-run_one constant_percent \
-    constant_percent --percent 4.0 --portfolio "us_stocks:60;us_bonds:40;" \
+run_one constant-percent \
+    constant-percent --percent 4.0 --portfolio "us_stocks:60;us_bonds:40;" \
     --inflation us_inflation --years 30 --rebalance yearly
 
 echo "Smoke: all checks passed"

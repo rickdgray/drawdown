@@ -24,13 +24,13 @@ namespace {
 swr::cli::command_schema constant_dollar_schema() {
     using namespace swr::cli;
     command_schema s;
-    s.command_name = "constant_dollar";
+    s.command_name = "constant-dollar";
     s.one_line_description =
         "Evaluate the success rate of a fixed real-dollar (inflation-adjusted) "
         "withdrawal\n  rate over a portfolio and horizon.";
     s.example_invocation =
-        "drawdown constant_dollar -w 4 -p \"us_stocks:60;us_bonds:40;\" -y 30 -r yearly\n"
-        "  drawdown constant_dollar --withdrawal-rate 4 --portfolio \"us_stocks:60;us_bonds:40;\" \\\n"
+        "drawdown constant-dollar -w 4 -p \"us_stocks:60;us_bonds:40;\" -y 30 -r yearly\n"
+        "  drawdown constant-dollar --withdrawal-rate 4 --portfolio \"us_stocks:60;us_bonds:40;\" \\\n"
         "    --inflation us_inflation --years 30 --rebalance yearly";
 
     s.flags = {
@@ -68,7 +68,7 @@ int constant_dollar(const std::vector<std::string>& args) {
             if (a == "--json" || a == "-j") mode = swr::output::Mode::JSON;
             else if (a == "--csv" || a == "-c") mode = swr::output::Mode::CSV;
         }
-        swr::output::emit_error(std::cerr, "constant_dollar", e.what(), mode);
+        swr::output::emit_error(std::cerr, "constant-dollar", e.what(), mode);
         return 1;
     }
 
@@ -102,14 +102,14 @@ int constant_dollar(const std::vector<std::string>& args) {
         sc.end_year   = ey > 0 ? ey : sc.inflation_data.back().year;
 
     } catch (const std::exception& e) {
-        swr::output::emit_error(std::cerr, "constant_dollar",
+        swr::output::emit_error(std::cerr, "constant-dollar",
             std::string("flag parse error: ") + e.what(), mode);
         return 1;
     }
 
     auto res = swr::simulation(sc);
     if (res.error) {
-        swr::output::emit_error(std::cerr, "constant_dollar", res.message, mode);
+        swr::output::emit_error(std::cerr, "constant-dollar", res.message, mode);
         return 1;
     }
 
@@ -117,7 +117,7 @@ int constant_dollar(const std::vector<std::string>& args) {
 
     // Build report
     swr::output::report rep;
-    rep.command_name = "constant_dollar";
+    rep.command_name = "constant-dollar";
     {
         swr::output::section sec;
         sec.name  = "inputs";
@@ -167,7 +167,7 @@ int constant_dollar(const std::vector<std::string>& args) {
     if (mode == swr::output::Mode::CSV) {
         rep.csv_data.column_headers = {"start_year", "start_month", "success",
             "terminal_value", "total_withdrawn", "worst_duration_months"};
-        rep.csv_data.preamble_comments.push_back("command: constant_dollar");
+        rep.csv_data.preamble_comments.push_back("command: constant-dollar");
         // Reconstruct per-path rows. Use terminal_values vector as parallel to start years.
         size_t idx = 0;
         for (size_t y = sc.start_year;

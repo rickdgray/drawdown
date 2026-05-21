@@ -24,13 +24,13 @@ namespace {
 swr::cli::command_schema constant_percent_schema() {
     using namespace swr::cli;
     command_schema s;
-    s.command_name = "constant_percent";
+    s.command_name = "constant-percent";
     s.one_line_description =
         "Evaluate the success rate of withdrawing a fixed percent of the\n"
         "  current portfolio balance each year (no inflation adjustment).";
     s.example_invocation =
-        "drawdown constant_percent -pct 4 -p \"us_stocks:60;us_bonds:40;\" -y 30 -r yearly\n"
-        "  drawdown constant_percent --percent 4 --portfolio \"us_stocks:60;us_bonds:40;\" \\\n"
+        "drawdown constant-percent -pct 4 -p \"us_stocks:60;us_bonds:40;\" -y 30 -r yearly\n"
+        "  drawdown constant-percent --percent 4 --portfolio \"us_stocks:60;us_bonds:40;\" \\\n"
         "    --inflation us_inflation --years 30 --rebalance yearly";
 
     s.flags = {
@@ -68,7 +68,7 @@ int constant_percent(const std::vector<std::string>& args) {
             if (a == "--json" || a == "-j") mode = swr::output::Mode::JSON;
             else if (a == "--csv" || a == "-c") mode = swr::output::Mode::CSV;
         }
-        swr::output::emit_error(std::cerr, "constant_percent", e.what(), mode);
+        swr::output::emit_error(std::cerr, "constant-percent", e.what(), mode);
         return 1;
     }
 
@@ -103,19 +103,19 @@ int constant_percent(const std::vector<std::string>& args) {
         sc.end_year   = ey > 0 ? ey : sc.inflation_data.back().year;
 
     } catch (const std::exception& e) {
-        swr::output::emit_error(std::cerr, "constant_percent",
+        swr::output::emit_error(std::cerr, "constant-percent",
             std::string("flag parse error: ") + e.what(), mode);
         return 1;
     }
 
     auto res = swr::simulation(sc);
     if (res.error) {
-        swr::output::emit_error(std::cerr, "constant_percent", res.message, mode);
+        swr::output::emit_error(std::cerr, "constant-percent", res.message, mode);
         return 1;
     }
 
     swr::output::report rep;
-    rep.command_name = "constant_percent";
+    rep.command_name = "constant-percent";
     {
         swr::output::section sec;
         sec.name  = "inputs";
@@ -152,7 +152,7 @@ int constant_percent(const std::vector<std::string>& args) {
     if (mode == swr::output::Mode::CSV) {
         rep.csv_data.column_headers = {"start_year", "start_month", "success",
             "terminal_value", "total_withdrawn", "worst_duration_months"};
-        rep.csv_data.preamble_comments.push_back("command: constant_percent");
+        rep.csv_data.preamble_comments.push_back("command: constant-percent");
         size_t idx = 0;
         for (size_t y = sc.start_year;
              y + sc.years <= sc.end_year && idx < res.terminal_values.size();

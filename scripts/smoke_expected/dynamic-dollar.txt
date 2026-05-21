@@ -1,4 +1,4 @@
-dynamic_dollar
+dynamic-dollar
 
 Inputs
   Current balance:      $850000
