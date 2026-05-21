@@ -11,8 +11,7 @@ Three CLI commands answer three different questions:
 ## Quick start
 
 ```
-drawdown dynamic_dollar --balance 850000 --current_age 67 --end_age 92 \
-    --portfolio "us_stocks:60;us_bonds:40;"
+drawdown dynamic_dollar -b 850000 -a 67 -e 92 -p "us_stocks:60;us_bonds:40;"
 ```
 
 ```
@@ -43,18 +42,16 @@ Evaluate the success rate of withdrawing a fixed real dollar amount each year. T
 
 #### Examples
 
-The classic Trinity 4% / 30 years / 60-40 portfolio:
+The classic Trinity 4% / 30 years / 60-40 portfolio (short flags):
 
 ```
-drawdown constant_dollar --wr 4 \
-    --portfolio "us_stocks:60;us_bonds:40;" \
-    --inflation us_inflation --years 30 --rebalance yearly
+drawdown constant_dollar -w 4 -p "us_stocks:60;us_bonds:40;" -y 30 -r yearly
 ```
 
 A more conservative FIRE scenario with 3.5% over 50 years, 100% stocks:
 
 ```
-drawdown constant_dollar --wr 3.5 \
+drawdown constant_dollar --withdrawal-rate 3.5 \
     --portfolio "us_stocks:100;" \
     --inflation us_inflation --years 50 --rebalance yearly
 ```
@@ -62,7 +59,7 @@ drawdown constant_dollar --wr 3.5 \
 Pass/fail against a 95% success target:
 
 ```
-drawdown constant_dollar --wr 4 --target_success 95 \
+drawdown constant_dollar --withdrawal-rate 4 --target-success 95 \
     --portfolio "us_stocks:60;us_bonds:40;" \
     --inflation us_inflation --years 30 --rebalance yearly
 ```
@@ -71,31 +68,31 @@ drawdown constant_dollar --wr 4 --target_success 95 \
 
 **Required:**
 
-| Flag | Meaning |
-|---|---|
-| `--wr <pct>` | Withdrawal rate (percent of initial portfolio) |
-| `--portfolio <spec>` | Portfolio spec, e.g. `"us_stocks:60;us_bonds:40;"` |
-| `--years <int>` | Horizon length in years |
+| Short | Long | Meaning |
+|---|---|---|
+| `-w` | `--withdrawal-rate <pct>` | Withdrawal rate (percent of initial portfolio) |
+| `-p` | `--portfolio <spec>` | Portfolio spec, e.g. `"us_stocks:60;us_bonds:40;"` |
+| `-y` | `--years <int>` | Horizon length in years |
 
 **Common:**
 
-| Flag | Default | Meaning |
-|---|---|---|
-| `--inflation <series>` | `us_inflation` | Name of an inflation series (embedded or user-supplied) |
-| `--rebalance <method>` | `none` | `none` \| `monthly` \| `yearly` \| `threshold` |
-| `--start_year <year>` | `0` | Earliest historical backtest start year (`0` = use full data) |
-| `--end_year <year>` | `0` | Latest historical backtest start year (`0` = use full data) |
-| `--initial_value <dollars>` | `1000` | Starting portfolio value |
-| `--target_success <pct>` | `0` | If > 0, output adds PASS/FAIL note vs this target |
-| `--json` | — | Emit JSON instead of text |
-| `--csv` | — | Emit CSV per-path output instead of text |
+| Short | Long | Default | Meaning |
+|---|---|---|---|
+| `-i` | `--inflation <series>` | `us_inflation` | Name of an inflation series (embedded or user-supplied) |
+| `-r` | `--rebalance <method>` | `none` | `none` \| `monthly` \| `yearly` \| `threshold` |
+| `-sy` | `--start-year <year>` | `0` | Earliest historical backtest start year (`0` = use full data) |
+| `-ey` | `--end-year <year>` | `0` | Latest historical backtest start year (`0` = use full data) |
+| `-iv` | `--initial-value <dollars>` | `1000` | Starting portfolio value |
+| `-t` | `--target-success <pct>` | `0` | If > 0, output adds PASS/FAIL note vs this target |
+| `-j` | `--json` | — | Emit JSON instead of text |
+| `-c` | `--csv` | — | Emit CSV per-path output instead of text |
 
 **Advanced:**
 
-| Flag | Default | Meaning |
-|---|---|---|
-| `--withdraw_frequency <n>` | `12` | `12` = yearly, `1` = monthly |
-| `--fees <fraction>` | `0.001` | TER as a fraction (e.g. `0.001` = 0.1%) |
+| Short | Long | Default | Meaning |
+|---|---|---|---|
+| `-wf` | `--withdraw-frequency <n>` | `12` | `12` = yearly, `1` = monthly |
+| `-f` | `--fees <fraction>` | `0.001` | TER as a fraction (e.g. `0.001` = 0.1%) |
 
 ---
 
@@ -105,18 +102,16 @@ Withdraw a fixed percent of the *current* (not initial) portfolio balance each y
 
 #### Examples
 
-4% of current balance over 30 years on a 60-40:
+4% of current balance over 30 years on a 60-40 (short flags):
 
 ```
-drawdown constant_percent --pct 4 \
-    --portfolio "us_stocks:60;us_bonds:40;" \
-    --inflation us_inflation --years 30 --rebalance yearly
+drawdown constant_percent -pct 4 -p "us_stocks:60;us_bonds:40;" -y 30 -r yearly
 ```
 
 Same scenario but with a higher minimum spending floor (3.5% of initial):
 
 ```
-drawdown constant_percent --pct 4 --minimum_floor 3.5 \
+drawdown constant_percent --percent 4 --minimum-floor 3.5 \
     --portfolio "us_stocks:60;us_bonds:40;" \
     --inflation us_inflation --years 30 --rebalance yearly
 ```
@@ -125,31 +120,31 @@ drawdown constant_percent --pct 4 --minimum_floor 3.5 \
 
 **Required:**
 
-| Flag | Meaning |
-|---|---|
-| `--pct <pct>` | Percent of current balance withdrawn each year |
-| `--portfolio <spec>` | Portfolio spec, e.g. `"us_stocks:60;us_bonds:40;"` |
-| `--years <int>` | Horizon length in years |
+| Short | Long | Meaning |
+|---|---|---|
+| `-pct` | `--percent <pct>` | Percent of current balance withdrawn each year |
+| `-p` | `--portfolio <spec>` | Portfolio spec, e.g. `"us_stocks:60;us_bonds:40;"` |
+| `-y` | `--years <int>` | Horizon length in years |
 
 **Common:**
 
-| Flag | Default | Meaning |
-|---|---|---|
-| `--inflation <series>` | `us_inflation` | Name of an inflation series (embedded or user-supplied) |
-| `--rebalance <method>` | `none` | `none` \| `monthly` \| `yearly` \| `threshold` |
-| `--start_year <year>` | `0` | Earliest historical backtest start year (`0` = use full data) |
-| `--end_year <year>` | `0` | Latest historical backtest start year (`0` = use full data) |
-| `--initial_value <dollars>` | `1000` | Starting portfolio value |
-| `--minimum_floor <pct>` | `3.0` | Minimum annual spending as a percent of *initial* portfolio. Prevents extreme drawdowns by setting a floor on what gets withdrawn even when the current balance is very low. |
-| `--json` | — | Emit JSON instead of text |
-| `--csv` | — | Emit CSV per-path output instead of text |
+| Short | Long | Default | Meaning |
+|---|---|---|---|
+| `-i` | `--inflation <series>` | `us_inflation` | Name of an inflation series (embedded or user-supplied) |
+| `-r` | `--rebalance <method>` | `none` | `none` \| `monthly` \| `yearly` \| `threshold` |
+| `-sy` | `--start-year <year>` | `0` | Earliest historical backtest start year (`0` = use full data) |
+| `-ey` | `--end-year <year>` | `0` | Latest historical backtest start year (`0` = use full data) |
+| `-iv` | `--initial-value <dollars>` | `1000` | Starting portfolio value |
+| `-mf` | `--minimum-floor <pct>` | `3.0` | Minimum annual spending as a percent of *initial* portfolio. Prevents extreme drawdowns by setting a floor on what gets withdrawn even when the current balance is very low. |
+| `-j` | `--json` | — | Emit JSON instead of text |
+| `-c` | `--csv` | — | Emit CSV per-path output instead of text |
 
 **Advanced:**
 
-| Flag | Default | Meaning |
-|---|---|---|
-| `--withdraw_frequency <n>` | `12` | `12` = yearly, `1` = monthly |
-| `--fees <fraction>` | `0.001` | TER as a fraction (e.g. `0.001` = 0.1%) |
+| Short | Long | Default | Meaning |
+|---|---|---|---|
+| `-wf` | `--withdraw-frequency <n>` | `12` | `12` = yearly, `1` = monthly |
+| `-f` | `--fees <fraction>` | `0.001` | TER as a fraction (e.g. `0.001` = 0.1%) |
 
 ---
 
@@ -159,41 +154,38 @@ A per-year point query. Given the current portfolio balance, current age, fixed 
 
 #### Examples
 
-The basic question: "I'm 67, have $850K, plan to live until 92, and want 80% success":
+The basic question: "I'm 67, have $850K, plan to live until 92, and want 80% success" (short flags):
 
 ```
-drawdown dynamic_dollar --balance 850000 \
-    --current_age 67 --end_age 92 \
-    --portfolio "us_stocks:60;us_bonds:40;" \
-    --inflation us_inflation
+drawdown dynamic_dollar -b 850000 -a 67 -e 92 -p "us_stocks:60;us_bonds:40;"
 ```
 
 With Social Security starting at age 70 ($24K/year):
 
 ```
 drawdown dynamic_dollar --balance 850000 \
-    --current_age 67 --end_age 92 \
+    --current-age 67 --end-age 92 \
     --portfolio "us_stocks:60;us_bonds:40;" \
     --inflation us_inflation \
-    --ssa_income 24000 --ssa_start_age 70
+    --ssa-income 24000 --ssa-start-age 70
 ```
 
 Next year's run, with smoothing to prevent year-over-year shocks:
 
 ```
 drawdown dynamic_dollar --balance 820000 \
-    --current_age 68 --end_age 92 \
+    --current-age 68 --end-age 92 \
     --portfolio "us_stocks:60;us_bonds:40;" \
     --inflation us_inflation \
-    --ssa_income 24000 --ssa_start_age 70 \
-    --smoothing 0.10 --prior_amount 43538
+    --ssa-income 24000 --ssa-start-age 70 \
+    --smoothing 0.10 --prior-amount 43538
 ```
 
 A more conservative target (90% success):
 
 ```
 drawdown dynamic_dollar --balance 850000 \
-    --current_age 67 --end_age 92 --target_success 90 \
+    --current-age 67 --end-age 92 --target-success 90 \
     --portfolio "us_stocks:60;us_bonds:40;" \
     --inflation us_inflation
 ```
@@ -202,36 +194,36 @@ drawdown dynamic_dollar --balance 850000 \
 
 **Required:**
 
-| Flag | Meaning |
-|---|---|
-| `--balance <dollars>` | Current portfolio balance |
-| `--current_age <years>` | Your current age (float allowed, e.g. `67.5`) |
-| `--end_age <years>` | Planning end age (integer) |
-| `--portfolio <spec>` | Portfolio spec, e.g. `"us_stocks:60;us_bonds:40;"` |
+| Short | Long | Meaning |
+|---|---|---|
+| `-b` | `--balance <dollars>` | Current portfolio balance |
+| `-a` | `--current-age <years>` | Your current age (float allowed, e.g. `67.5`) |
+| `-e` | `--end-age <years>` | Planning end age (integer) |
+| `-p` | `--portfolio <spec>` | Portfolio spec, e.g. `"us_stocks:60;us_bonds:40;"` |
 
 **Common:**
 
-| Flag | Default | Meaning |
-|---|---|---|
-| `--inflation <series>` | `us_inflation` | Name of an inflation series (embedded or user-supplied) |
-| `--target_success <pct>` | `80` | Target success rate. The solver finds the highest WR that hits at least this success rate. |
-| `--rebalance <method>` | `none` | `none` \| `monthly` \| `yearly` \| `threshold` |
-| `--ssa_income <dollars>` | `0` | Annual Social Security income (set to non-zero to enable). |
-| `--ssa_start_age <years>` | `0` | Age SSA income begins. Required if `--ssa_income > 0`. |
-| `--smoothing <fraction>` | `0` | Max year-over-year change in spending, e.g. `0.10` = ±10%. Caps swings caused by market volatility. Requires `--prior_amount`. |
-| `--prior_amount <dollars>` | `0` | Last year's spending budget. When set, populates the *signal* field (`increase` / `hold` / `decrease`) and is used by `--smoothing` if enabled. |
-| `--json` | — | Emit JSON instead of text |
-| `--csv` | — | Emit CSV per-path output instead of text |
+| Short | Long | Default | Meaning |
+|---|---|---|---|
+| `-i` | `--inflation <series>` | `us_inflation` | Name of an inflation series (embedded or user-supplied) |
+| `-t` | `--target-success <pct>` | `80` | Target success rate. The solver finds the highest WR that hits at least this success rate. |
+| `-r` | `--rebalance <method>` | `none` | `none` \| `monthly` \| `yearly` \| `threshold` |
+| `-si` | `--ssa-income <dollars>` | `0` | Annual Social Security income (set to non-zero to enable). |
+| `-sa` | `--ssa-start-age <years>` | `0` | Age SSA income begins. Required if `--ssa-income > 0`. |
+| `-s` | `--smoothing <fraction>` | `0` | Max year-over-year change in spending, e.g. `0.10` = ±10%. Caps swings caused by market volatility. Requires `--prior-amount`. |
+| `-pa` | `--prior-amount <dollars>` | `0` | Last year's spending budget. When set, populates the *signal* field (`increase` / `hold` / `decrease`) and is used by `--smoothing` if enabled. |
+| `-j` | `--json` | — | Emit JSON instead of text |
+| `-c` | `--csv` | — | Emit CSV per-path output instead of text |
 
 **Advanced:**
 
-| Flag | Default | Meaning |
-|---|---|---|
-| `--start_year <year>` | `0` | Earliest historical backtest start year (`0` = use full data) |
-| `--end_year <year>` | `0` | Latest historical backtest start year (`0` = use full data) |
-| `--withdraw_frequency <n>` | `12` | `12` = yearly, `1` = monthly |
-| `--fees <fraction>` | `0.001` | TER as a fraction (e.g. `0.001` = 0.1%) |
-| `--solver_tolerance <dollars>` | `1` | Binary-search stopping tolerance. Smaller = more iterations, more precision. |
+| Short | Long | Default | Meaning |
+|---|---|---|---|
+| `-sy` | `--start-year <year>` | `0` | Earliest historical backtest start year (`0` = use full data) |
+| `-ey` | `--end-year <year>` | `0` | Latest historical backtest start year (`0` = use full data) |
+| `-wf` | `--withdraw-frequency <n>` | `12` | `12` = yearly, `1` = monthly |
+| `-f` | `--fees <fraction>` | `0.001` | TER as a fraction (e.g. `0.001` = 0.1%) |
+| `-st` | `--solver-tolerance <dollars>` | `1` | Binary-search stopping tolerance. Smaller = more iterations, more precision. |
 
 ## Output formats
 

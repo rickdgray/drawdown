@@ -125,11 +125,11 @@ static swr::cli::command_schema make_test_schema() {
     using namespace swr::cli;
     command_schema s;
     s.command_name = "test_cmd";
-    s.flags.push_back({"foo", FlagGroup::REQUIRED, FlagKind::VALUE,
+    s.flags.push_back({"foo", "f", FlagGroup::REQUIRED, FlagKind::VALUE,
                        "a required value flag", ""});
-    s.flags.push_back({"bar", FlagGroup::COMMON, FlagKind::VALUE,
+    s.flags.push_back({"bar", "b", FlagGroup::COMMON, FlagKind::VALUE,
                        "an optional value flag with default", "default_bar"});
-    s.flags.push_back({"verbose", FlagGroup::COMMON, FlagKind::PRESENCE,
+    s.flags.push_back({"verbose", "v", FlagGroup::COMMON, FlagKind::PRESENCE,
                        "a presence flag", ""});
     return s;
 }
@@ -205,8 +205,8 @@ TEST(cli_mutually_exclusive_throws) {
     using namespace swr::cli;
     command_schema s;
     s.command_name = "tx";
-    s.flags.push_back({"json", FlagGroup::COMMON, FlagKind::PRESENCE, "", ""});
-    s.flags.push_back({"csv",  FlagGroup::COMMON, FlagKind::PRESENCE, "", ""});
+    s.flags.push_back({"json", "j", FlagGroup::COMMON, FlagKind::PRESENCE, "", ""});
+    s.flags.push_back({"csv",  "c", FlagGroup::COMMON, FlagKind::PRESENCE, "", ""});
     s.mutually_exclusive.push_back({"json", "csv"});
     bool threw = false;
     try {

@@ -50,20 +50,18 @@ run_one() {
     echo "Smoke OK: $name"
 }
 
-# Phase 1: only dynamic_dollar uses flag style. The others still take
-# positional args here; their smoke entries land in Phase 2.
 run_one dynamic_dollar \
     dynamic_dollar \
-    --balance 850000 --current_age 67 --end_age 92 \
+    --balance 850000 --current-age 67 --end-age 92 \
     --portfolio "us_stocks:60;us_bonds:40;" --inflation us_inflation \
     --rebalance yearly
 
 run_one constant_dollar \
-    constant_dollar --wr 4.0 --portfolio "us_stocks:60;us_bonds:40;" \
+    constant_dollar --withdrawal-rate 4.0 --portfolio "us_stocks:60;us_bonds:40;" \
     --inflation us_inflation --years 30 --rebalance yearly
 
 run_one constant_percent \
-    constant_percent --pct 4.0 --portfolio "us_stocks:60;us_bonds:40;" \
+    constant_percent --percent 4.0 --portfolio "us_stocks:60;us_bonds:40;" \
     --inflation us_inflation --years 30 --rebalance yearly
 
 echo "Smoke: all checks passed"

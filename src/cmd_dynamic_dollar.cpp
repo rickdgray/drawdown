@@ -29,31 +29,33 @@ swr::cli::command_schema dynamic_dollar_schema() {
         "Compute this year's sustainable withdrawal given current portfolio "
         "reality,\n  using historical backtesting over the remaining horizon.";
     s.example_invocation =
-        "drawdown dynamic_dollar --balance 850000 --current_age 67 "
-        "--end_age 92 \\\n    --portfolio \"us_stocks:60;us_bonds:40;\" "
+        "drawdown dynamic_dollar -b 850000 -a 67 -e 92 "
+        "-p \"us_stocks:60;us_bonds:40;\"\n"
+        "  drawdown dynamic_dollar --balance 850000 --current-age 67 "
+        "--end-age 92 \\\n    --portfolio \"us_stocks:60;us_bonds:40;\" "
         "--inflation us_inflation";
 
     s.flags = {
-        {"balance",            FlagGroup::REQUIRED, FlagKind::VALUE,    "Current portfolio balance (dollars)", ""},
-        {"current_age",        FlagGroup::REQUIRED, FlagKind::VALUE,    "Your current age (float allowed)", ""},
-        {"end_age",            FlagGroup::REQUIRED, FlagKind::VALUE,    "Planning end age (integer)", ""},
-        {"portfolio",          FlagGroup::REQUIRED, FlagKind::VALUE,    "Portfolio spec, e.g. \"us_stocks:60;us_bonds:40;\"", ""},
+        {"balance",            "b",  FlagGroup::REQUIRED, FlagKind::VALUE,    "Current portfolio balance (dollars)", ""},
+        {"current-age",        "a",  FlagGroup::REQUIRED, FlagKind::VALUE,    "Your current age (float allowed)", ""},
+        {"end-age",            "e",  FlagGroup::REQUIRED, FlagKind::VALUE,    "Planning end age (integer)", ""},
+        {"portfolio",          "p",  FlagGroup::REQUIRED, FlagKind::VALUE,    "Portfolio spec, e.g. \"us_stocks:60;us_bonds:40;\"", ""},
 
-        {"inflation",          FlagGroup::COMMON,   FlagKind::VALUE,    "Inflation series, e.g. \"us_inflation\"", "us_inflation"},
-        {"target_success",     FlagGroup::COMMON,   FlagKind::VALUE,    "Target success rate (percent)", "80"},
-        {"rebalance",          FlagGroup::COMMON,   FlagKind::VALUE,    "none | monthly | yearly | threshold", "none"},
-        {"ssa_income",         FlagGroup::COMMON,   FlagKind::VALUE,    "Annual SSA income (dollars; 0 = disabled)", "0"},
-        {"ssa_start_age",      FlagGroup::COMMON,   FlagKind::VALUE,    "Age SSA begins (required if --ssa_income > 0)", "0"},
-        {"smoothing",          FlagGroup::COMMON,   FlagKind::VALUE,    "Max YoY change as fraction, e.g. 0.10 (0 = disabled)", "0"},
-        {"prior_amount",       FlagGroup::COMMON,   FlagKind::VALUE,    "Last year's spending budget (also enables signal)", "0"},
-        {"json",               FlagGroup::COMMON,   FlagKind::PRESENCE, "Emit JSON output", ""},
-        {"csv",                FlagGroup::COMMON,   FlagKind::PRESENCE, "Emit CSV per-path output", ""},
+        {"inflation",          "i",  FlagGroup::COMMON,   FlagKind::VALUE,    "Inflation series, e.g. \"us_inflation\"", "us_inflation"},
+        {"target-success",     "t",  FlagGroup::COMMON,   FlagKind::VALUE,    "Target success rate (percent)", "80"},
+        {"rebalance",          "r",  FlagGroup::COMMON,   FlagKind::VALUE,    "none | monthly | yearly | threshold", "none"},
+        {"ssa-income",         "si", FlagGroup::COMMON,   FlagKind::VALUE,    "Annual SSA income (dollars; 0 = disabled)", "0"},
+        {"ssa-start-age",      "sa", FlagGroup::COMMON,   FlagKind::VALUE,    "Age SSA begins (required if --ssa-income > 0)", "0"},
+        {"smoothing",          "s",  FlagGroup::COMMON,   FlagKind::VALUE,    "Max YoY change as fraction, e.g. 0.10 (0 = disabled)", "0"},
+        {"prior-amount",       "pa", FlagGroup::COMMON,   FlagKind::VALUE,    "Last year's spending budget (also enables signal)", "0"},
+        {"json",               "j",  FlagGroup::COMMON,   FlagKind::PRESENCE, "Emit JSON output", ""},
+        {"csv",                "c",  FlagGroup::COMMON,   FlagKind::PRESENCE, "Emit CSV per-path output", ""},
 
-        {"start_year",         FlagGroup::ADVANCED, FlagKind::VALUE,    "Earliest historical backtest start year (default: full data)", "0"},
-        {"end_year",           FlagGroup::ADVANCED, FlagKind::VALUE,    "Latest historical backtest start year (default: full data)", "0"},
-        {"withdraw_frequency", FlagGroup::ADVANCED, FlagKind::VALUE,    "12 = yearly, 1 = monthly", "12"},
-        {"fees",               FlagGroup::ADVANCED, FlagKind::VALUE,    "TER as fraction", "0.001"},
-        {"solver_tolerance",   FlagGroup::ADVANCED, FlagKind::VALUE,    "Binary-search stopping tolerance (dollars)", "1"},
+        {"start-year",         "sy", FlagGroup::ADVANCED, FlagKind::VALUE,    "Earliest historical backtest start year (default: full data)", "0"},
+        {"end-year",           "ey", FlagGroup::ADVANCED, FlagKind::VALUE,    "Latest historical backtest start year (default: full data)", "0"},
+        {"withdraw-frequency", "wf", FlagGroup::ADVANCED, FlagKind::VALUE,    "12 = yearly, 1 = monthly", "12"},
+        {"fees",               "f",  FlagGroup::ADVANCED, FlagKind::VALUE,    "TER as fraction", "0.001"},
+        {"solver-tolerance",   "st", FlagGroup::ADVANCED, FlagKind::VALUE,    "Binary-search stopping tolerance (dollars)", "1"},
     };
     s.mutually_exclusive.push_back({"json", "csv"});
     return s;
@@ -71,8 +73,8 @@ int dynamic_dollar(const std::vector<std::string>& args) {
     } catch (const std::exception& e) {
         // Determine mode from raw args so we route error correctly.
         for (auto& a : args) {
-            if (a == "--json") mode = swr::output::Mode::JSON;
-            else if (a == "--csv") mode = swr::output::Mode::CSV;
+            if (a == "--json" || a == "-j") mode = swr::output::Mode::JSON;
+            else if (a == "--csv" || a == "-c") mode = swr::output::Mode::CSV;
         }
         swr::output::emit_error(std::cerr, "dynamic_dollar", e.what(), mode);
         return 1;
@@ -92,9 +94,9 @@ int dynamic_dollar(const std::vector<std::string>& args) {
         in.current_balance =
             std::stof(swr::cli::get_value(p, schema, "balance"));
         in.current_age =
-            std::stof(swr::cli::get_value(p, schema, "current_age"));
+            std::stof(swr::cli::get_value(p, schema, "current-age"));
         in.end_age =
-            static_cast<size_t>(std::stoul(swr::cli::get_value(p, schema, "end_age")));
+            static_cast<size_t>(std::stoul(swr::cli::get_value(p, schema, "end-age")));
         in.portfolio =
             swr::parse_portfolio(swr::cli::get_value(p, schema, "portfolio"), false);
         swr::normalize_portfolio(in.portfolio);
@@ -102,15 +104,15 @@ int dynamic_dollar(const std::vector<std::string>& args) {
         in.rebalance = swr::parse_rebalance(
             swr::cli::get_value(p, schema, "rebalance"));
         in.target_success =
-            std::stof(swr::cli::get_value(p, schema, "target_success"));
+            std::stof(swr::cli::get_value(p, schema, "target-success"));
 
-        float ssa_income = std::stof(swr::cli::get_value(p, schema, "ssa_income"));
+        float ssa_income = std::stof(swr::cli::get_value(p, schema, "ssa-income"));
         size_t ssa_age   = static_cast<size_t>(
-            std::stoul(swr::cli::get_value(p, schema, "ssa_start_age")));
+            std::stoul(swr::cli::get_value(p, schema, "ssa-start-age")));
         if (ssa_income > 0.0f) {
             if (ssa_age == 0) {
                 swr::output::emit_error(std::cerr, "dynamic_dollar",
-                    "--ssa_income > 0 requires --ssa_start_age", mode);
+                    "--ssa-income > 0 requires --ssa-start-age", mode);
                 return 1;
             }
             in.ssa_enabled       = true;
@@ -119,11 +121,11 @@ int dynamic_dollar(const std::vector<std::string>& args) {
         }
 
         float smoothing = std::stof(swr::cli::get_value(p, schema, "smoothing"));
-        float prior     = std::stof(swr::cli::get_value(p, schema, "prior_amount"));
+        float prior     = std::stof(swr::cli::get_value(p, schema, "prior-amount"));
         if (smoothing > 0.0f) {
             if (prior <= 0.0f) {
                 swr::output::emit_error(std::cerr, "dynamic_dollar",
-                    "--smoothing > 0 requires --prior_amount", mode);
+                    "--smoothing > 0 requires --prior-amount", mode);
                 return 1;
             }
             in.smoothing_enabled    = true;
@@ -132,14 +134,14 @@ int dynamic_dollar(const std::vector<std::string>& args) {
         in.prior_year_amount = prior;
 
         in.historical_start_year = static_cast<size_t>(
-            std::stoul(swr::cli::get_value(p, schema, "start_year")));
+            std::stoul(swr::cli::get_value(p, schema, "start-year")));
         in.historical_end_year = static_cast<size_t>(
-            std::stoul(swr::cli::get_value(p, schema, "end_year")));
+            std::stoul(swr::cli::get_value(p, schema, "end-year")));
         in.withdraw_frequency = static_cast<size_t>(
-            std::stoul(swr::cli::get_value(p, schema, "withdraw_frequency")));
+            std::stoul(swr::cli::get_value(p, schema, "withdraw-frequency")));
         in.fees = std::stof(swr::cli::get_value(p, schema, "fees"));
         in.solver_tolerance = std::stof(
-            swr::cli::get_value(p, schema, "solver_tolerance"));
+            swr::cli::get_value(p, schema, "solver-tolerance"));
     } catch (const std::exception& e) {
         swr::output::emit_error(std::cerr, "dynamic_dollar",
             std::string("flag parse error: ") + e.what(), mode);

@@ -4,7 +4,8 @@
 // (See accompanying file LICENSE or copy at
 //  http://opensource.org/licenses/MIT)
 //
-// Tiny flag parser. Long flags only. Supports --x value and --x=value.
+// Tiny flag parser. Supports long (--x) and short (-x) flags.
+// Supports --x value, --x=value, -x value, and -x=value.
 // Presence flags take no value.
 //=======================================================================
 #pragma once
@@ -21,7 +22,8 @@ enum class FlagGroup { REQUIRED, COMMON, ADVANCED };
 enum class FlagKind  { VALUE, PRESENCE };
 
 struct flag_spec {
-    std::string name;          // without leading "--"
+    std::string name;          // long name without leading "--"
+    std::string short_name;    // short name without leading "-" (empty = no short)
     FlagGroup   group;
     FlagKind    kind;
     std::string description;

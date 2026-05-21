@@ -29,25 +29,26 @@ swr::cli::command_schema constant_percent_schema() {
         "Evaluate the success rate of withdrawing a fixed percent of the\n"
         "  current portfolio balance each year (no inflation adjustment).";
     s.example_invocation =
-        "drawdown constant_percent --pct 4 --portfolio \"us_stocks:60;us_bonds:40;\" \\\n"
+        "drawdown constant_percent -pct 4 -p \"us_stocks:60;us_bonds:40;\" -y 30 -r yearly\n"
+        "  drawdown constant_percent --percent 4 --portfolio \"us_stocks:60;us_bonds:40;\" \\\n"
         "    --inflation us_inflation --years 30 --rebalance yearly";
 
     s.flags = {
-        {"pct",                FlagGroup::REQUIRED, FlagKind::VALUE,    "Percent of current balance withdrawn each year", ""},
-        {"portfolio",          FlagGroup::REQUIRED, FlagKind::VALUE,    "Portfolio spec, e.g. \"us_stocks:60;us_bonds:40;\"", ""},
-        {"years",              FlagGroup::REQUIRED, FlagKind::VALUE,    "Horizon length (years)", ""},
+        {"percent",            "pct", FlagGroup::REQUIRED, FlagKind::VALUE,    "Percent of current balance withdrawn each year", ""},
+        {"portfolio",          "p",   FlagGroup::REQUIRED, FlagKind::VALUE,    "Portfolio spec, e.g. \"us_stocks:60;us_bonds:40;\"", ""},
+        {"years",              "y",   FlagGroup::REQUIRED, FlagKind::VALUE,    "Horizon length (years)", ""},
 
-        {"inflation",          FlagGroup::COMMON,   FlagKind::VALUE,    "Inflation series", "us_inflation"},
-        {"rebalance",          FlagGroup::COMMON,   FlagKind::VALUE,    "none | monthly | yearly | threshold", "none"},
-        {"start_year",         FlagGroup::COMMON,   FlagKind::VALUE,    "Earliest historical backtest start year (0 = full data)", "0"},
-        {"end_year",           FlagGroup::COMMON,   FlagKind::VALUE,    "Latest historical backtest start year (0 = full data)", "0"},
-        {"initial_value",      FlagGroup::COMMON,   FlagKind::VALUE,    "Starting portfolio value (dollars)", "1000"},
-        {"minimum_floor",      FlagGroup::COMMON,   FlagKind::VALUE,    "Minimum annual spending floor as percent of initial", "3.0"},
-        {"json",               FlagGroup::COMMON,   FlagKind::PRESENCE, "Emit JSON output", ""},
-        {"csv",                FlagGroup::COMMON,   FlagKind::PRESENCE, "Emit CSV per-path output", ""},
+        {"inflation",          "i",   FlagGroup::COMMON,   FlagKind::VALUE,    "Inflation series", "us_inflation"},
+        {"rebalance",          "r",   FlagGroup::COMMON,   FlagKind::VALUE,    "none | monthly | yearly | threshold", "none"},
+        {"start-year",         "sy",  FlagGroup::COMMON,   FlagKind::VALUE,    "Earliest historical backtest start year (0 = full data)", "0"},
+        {"end-year",           "ey",  FlagGroup::COMMON,   FlagKind::VALUE,    "Latest historical backtest start year (0 = full data)", "0"},
+        {"initial-value",      "iv",  FlagGroup::COMMON,   FlagKind::VALUE,    "Starting portfolio value (dollars)", "1000"},
+        {"minimum-floor",      "mf",  FlagGroup::COMMON,   FlagKind::VALUE,    "Minimum annual spending floor as percent of initial", "3.0"},
+        {"json",               "j",   FlagGroup::COMMON,   FlagKind::PRESENCE, "Emit JSON output", ""},
+        {"csv",                "c",   FlagGroup::COMMON,   FlagKind::PRESENCE, "Emit CSV per-path output", ""},
 
-        {"withdraw_frequency", FlagGroup::ADVANCED, FlagKind::VALUE,    "12 = yearly, 1 = monthly", "12"},
-        {"fees",               FlagGroup::ADVANCED, FlagKind::VALUE,    "TER as fraction", "0.001"},
+        {"withdraw-frequency", "wf",  FlagGroup::ADVANCED, FlagKind::VALUE,    "12 = yearly, 1 = monthly", "12"},
+        {"fees",               "f",   FlagGroup::ADVANCED, FlagKind::VALUE,    "TER as fraction", "0.001"},
     };
     s.mutually_exclusive.push_back({"json", "csv"});
     return s;
@@ -64,8 +65,8 @@ int constant_percent(const std::vector<std::string>& args) {
         p = swr::cli::parse_flags(args, schema);
     } catch (const std::exception& e) {
         for (auto& a : args) {
-            if (a == "--json") mode = swr::output::Mode::JSON;
-            else if (a == "--csv") mode = swr::output::Mode::CSV;
+            if (a == "--json" || a == "-j") mode = swr::output::Mode::JSON;
+            else if (a == "--csv" || a == "-c") mode = swr::output::Mode::CSV;
         }
         swr::output::emit_error(std::cerr, "constant_percent", e.what(), mode);
         return 1;
@@ -84,20 +85,20 @@ int constant_percent(const std::vector<std::string>& args) {
         sc.portfolio = swr::parse_portfolio(swr::cli::get_value(p, schema, "portfolio"), false);
         swr::normalize_portfolio(sc.portfolio);
         sc.years    = static_cast<size_t>(std::stoul(swr::cli::get_value(p, schema, "years")));
-        sc.wr       = std::stof(swr::cli::get_value(p, schema, "pct"));
+        sc.wr       = std::stof(swr::cli::get_value(p, schema, "percent"));
         sc.rebalance = swr::parse_rebalance(swr::cli::get_value(p, schema, "rebalance"));
-        sc.initial_value = std::stof(swr::cli::get_value(p, schema, "initial_value"));
-        sc.withdraw_frequency = static_cast<size_t>(std::stoul(swr::cli::get_value(p, schema, "withdraw_frequency")));
+        sc.initial_value = std::stof(swr::cli::get_value(p, schema, "initial-value"));
+        sc.withdraw_frequency = static_cast<size_t>(std::stoul(swr::cli::get_value(p, schema, "withdraw-frequency")));
         sc.fees = std::stof(swr::cli::get_value(p, schema, "fees"));
         sc.wmethod = swr::WithdrawalMethod::CURRENT;
-        sc.minimum = std::stof(swr::cli::get_value(p, schema, "minimum_floor")) / 100.0f;
+        sc.minimum = std::stof(swr::cli::get_value(p, schema, "minimum-floor")) / 100.0f;
 
         std::string inflation = swr::cli::get_value(p, schema, "inflation");
         sc.values         = swr::load_values(sc.portfolio);
         sc.inflation_data = swr::load_inflation(sc.values, inflation);
 
-        size_t sy = static_cast<size_t>(std::stoul(swr::cli::get_value(p, schema, "start_year")));
-        size_t ey = static_cast<size_t>(std::stoul(swr::cli::get_value(p, schema, "end_year")));
+        size_t sy = static_cast<size_t>(std::stoul(swr::cli::get_value(p, schema, "start-year")));
+        size_t ey = static_cast<size_t>(std::stoul(swr::cli::get_value(p, schema, "end-year")));
         sc.start_year = sy > 0 ? sy : sc.inflation_data.front().year;
         sc.end_year   = ey > 0 ? ey : sc.inflation_data.back().year;
 

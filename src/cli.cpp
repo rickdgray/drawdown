@@ -18,9 +18,13 @@ parsed_args parse_flags(const std::vector<std::string>& args,
                         const command_schema& schema) {
     parsed_args result;
 
-    // Build a quick lookup of flag specs by name.
+    // Build quick lookups: by long name and by short name.
     std::map<std::string, const flag_spec*> by_name;
-    for (auto& f : schema.flags) by_name[f.name] = &f;
+    std::map<std::string, const flag_spec*> by_short;
+    for (auto& f : schema.flags) {
+        by_name[f.name] = &f;
+        if (!f.short_name.empty()) by_short[f.short_name] = &f;
+    }
 
     for (size_t i = 0; i < args.size(); ++i) {
         const std::string& a = args[i];
@@ -30,46 +34,65 @@ parsed_args parse_flags(const std::vector<std::string>& args,
             continue;
         }
 
-        if (a.rfind("--", 0) != 0) {
+        const flag_spec* spec = nullptr;
+        std::optional<std::string> inline_value;
+        std::string long_name; // canonical long name, used as key in result maps
+
+        if (a.rfind("--", 0) == 0) {
+            // Long flag: --name or --name=value
+            std::string body = a.substr(2);
+            auto eq_pos = body.find('=');
+            if (eq_pos != std::string::npos) {
+                long_name    = body.substr(0, eq_pos);
+                inline_value = body.substr(eq_pos + 1);
+            } else {
+                long_name = body;
+            }
+            auto it = by_name.find(long_name);
+            if (it == by_name.end()) {
+                throw std::runtime_error("unknown flag: --" + long_name);
+            }
+            spec = it->second;
+        } else if (a.rfind("-", 0) == 0 && a.size() > 1) {
+            // Short flag: -x or -x=value
+            std::string body = a.substr(1);
+            auto eq_pos = body.find('=');
+            std::string short_key;
+            if (eq_pos != std::string::npos) {
+                short_key    = body.substr(0, eq_pos);
+                inline_value = body.substr(eq_pos + 1);
+            } else {
+                short_key = body;
+            }
+            auto it = by_short.find(short_key);
+            if (it == by_short.end()) {
+                throw std::runtime_error("unknown flag: -" + short_key);
+            }
+            spec      = it->second;
+            long_name = spec->name; // key by long name
+        } else {
             throw std::runtime_error("unexpected positional arg: " + a);
         }
 
-        std::string name;
-        std::optional<std::string> inline_value;
-        std::string body = a.substr(2);
-        auto eq_pos = body.find('=');
-        if (eq_pos != std::string::npos) {
-            name = body.substr(0, eq_pos);
-            inline_value = body.substr(eq_pos + 1);
-        } else {
-            name = body;
-        }
-
-        auto it = by_name.find(name);
-        if (it == by_name.end()) {
-            throw std::runtime_error("unknown flag: --" + name);
-        }
-
-        const flag_spec* spec = it->second;
         if (spec->kind == FlagKind::PRESENCE) {
             if (inline_value.has_value()) {
-                throw std::runtime_error("flag --" + name +
+                throw std::runtime_error("flag --" + long_name +
                                          " does not take a value");
             }
-            result.presence[name] = true;
+            result.presence[long_name] = true;
         } else {
             std::string value;
             if (inline_value.has_value()) {
                 value = *inline_value;
             } else {
                 if (i + 1 >= args.size()) {
-                    throw std::runtime_error("flag --" + name +
+                    throw std::runtime_error("flag --" + long_name +
                                              " requires a value");
                 }
                 value = args[++i];
             }
-            result.values[name] = value;
-            result.presence[name] = true;
+            result.values[long_name]   = value;
+            result.presence[long_name] = true;
         }
     }
 
@@ -109,13 +132,20 @@ void render_help(std::ostream& out, const command_schema& schema) {
                 out << "\n" << label << ":\n";
                 first = false;
             }
-            // Two-column: name+kind on left, description on right.
-            std::string left = "  --" + f.name;
+            // Build left column: "-short, --long <value>" or "      --long <value>"
+            std::string left;
+            if (!f.short_name.empty()) {
+                left = "  -" + f.short_name + ",  --" + f.name;
+            } else {
+                // No short name so indent same as if short were present but blank
+                left = "       --" + f.name;
+            }
             if (f.kind == FlagKind::VALUE) left += " <value>";
             out << left;
-            // pad to column 24
-            if (left.size() < 24) {
-                out << std::string(24 - left.size(), ' ');
+            // pad to column 36
+            const size_t col = 36;
+            if (left.size() < col) {
+                out << std::string(col - left.size(), ' ');
             } else {
                 out << " ";
             }
