@@ -4,7 +4,7 @@
 // (See accompanying file LICENSE or copy at
 //  http://opensource.org/licenses/MIT)
 //
-// Unified text/JSON/CSV output for swr_calculator commands.
+// Unified text/JSON/CSV output for drawdown commands.
 //=======================================================================
 #pragma once
 

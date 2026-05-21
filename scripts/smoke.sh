@@ -12,9 +12,9 @@ cd "$(dirname "$0")/.."
 # Find the binary. Build system uses compiler-version subdir.
 BIN=""
 for candidate in \
-    release_debug/gcc-15/bin/swr_calculator \
-    release_debug/bin/swr_calculator \
-    release_debug/swr_calculator \
+    release_debug/gcc-15/bin/drawdown \
+    release_debug/bin/drawdown \
+    release_debug/drawdown \
 ; do
     if [[ -x "$candidate" ]]; then
         BIN="$candidate"
@@ -22,7 +22,7 @@ for candidate in \
     fi
 done
 if [[ -z "$BIN" ]]; then
-    echo "Smoke: cannot find swr_calculator binary. Run 'make' first."
+    echo "Smoke: cannot find drawdown binary. Run 'make' first."
     exit 1
 fi
 

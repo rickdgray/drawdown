@@ -1,4 +1,4 @@
-# swr_calculator build
+# drawdown build
 #
 # Targets:
 #   make / make release_debug  - default; optimized with debug info (-O2 -g -march=native)
@@ -6,6 +6,7 @@
 #   make debug                 - debug build (-g, no optimization)
 #   make all                   - all three
 #   make test                  - build and run the unit test binary
+#   make compile_commands      - regenerate compile_commands.json via bear (optional, gitignored)
 #   make clean                 - remove build directories
 
 CXX      := g++-15
@@ -32,12 +33,12 @@ TEST_SRC := tests/test_dynamic.cpp \
             $(filter-out src/main.cpp,$(SRC_FILES))
 TEST_BIN := release_debug/test_dynamic
 
-.PHONY: default release release_debug debug all clean test
+.PHONY: default release release_debug debug all clean test compile_commands
 default: release_debug
 
-release:       release/swr_calculator
-release_debug: release_debug/swr_calculator
-debug:         debug/swr_calculator
+release:       release/drawdown
+release_debug: release_debug/drawdown
+debug:         debug/drawdown
 all:           release release_debug debug
 
 # Per-mode pattern rules for compilation
@@ -53,18 +54,18 @@ debug/%.o: src/%.cpp
 	@mkdir -p debug
 	$(CXX) $(CXXFLAGS) $(DEBUG_FLAGS) -MMD -MP -c $< -o $@
 
-# Linking
-release/swr_calculator: $(OBJ_RELEASE)
+# Linking. LDFLAGS is an extension point for CI (e.g. -static-libstdc++).
+release/drawdown: $(OBJ_RELEASE)
 	@mkdir -p release
-	$(CXX) $(CXXFLAGS) $(RELEASE_FLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) $(RELEASE_FLAGS) -o $@ $^ $(LDFLAGS)
 
-release_debug/swr_calculator: $(OBJ_RELEASE_DEBUG)
+release_debug/drawdown: $(OBJ_RELEASE_DEBUG)
 	@mkdir -p release_debug
-	$(CXX) $(CXXFLAGS) $(RELEASE_DEBUG_FLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) $(RELEASE_DEBUG_FLAGS) -o $@ $^ $(LDFLAGS)
 
-debug/swr_calculator: $(OBJ_DEBUG)
+debug/drawdown: $(OBJ_DEBUG)
 	@mkdir -p debug
-	$(CXX) $(CXXFLAGS) $(DEBUG_FLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) $(DEBUG_FLAGS) -o $@ $^ $(LDFLAGS)
 
 # Test target: compile the test main + production sources (no main.cpp)
 $(TEST_BIN): $(TEST_SRC) $(wildcard include/*.hpp)
@@ -76,6 +77,17 @@ test: $(TEST_BIN)
 
 clean:
 	rm -rf release release_debug debug
+
+# Regenerate compile_commands.json using `bear`. compile_commands.json is
+# gitignored — this is a local convenience for IDEs (clangd, VS Code C/C++
+# extension, CLion). Skips gracefully if bear is not installed.
+compile_commands:
+	@if command -v bear >/dev/null 2>&1; then \
+	    rm -f compile_commands.json && bear -- $(MAKE) -B release_debug; \
+	else \
+	    echo "compile_commands: 'bear' not installed; skipping."; \
+	    echo "Install via: apt install bear (or brew install bear)"; \
+	fi
 
 # Include generated dependency files
 -include $(DEP_RELEASE) $(DEP_RELEASE_DEBUG) $(DEP_DEBUG)

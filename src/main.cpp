@@ -43,7 +43,7 @@ swr::cli::command_schema dynamic_dollar_schema() {
         "Compute this year's sustainable withdrawal given current portfolio "
         "reality,\n  using historical backtesting over the remaining horizon.";
     s.example_invocation =
-        "swr_calculator dynamic_dollar --balance 850000 --current_age 67 "
+        "drawdown dynamic_dollar --balance 850000 --current_age 67 "
         "--end_age 92 \\\n    --portfolio \"us_stocks:60;us_bonds:40;\" "
         "--inflation us_inflation";
 
@@ -250,7 +250,7 @@ swr::cli::command_schema constant_dollar_schema() {
         "Evaluate the success rate of a fixed real-dollar (inflation-adjusted) "
         "withdrawal\n  rate over a portfolio and horizon.";
     s.example_invocation =
-        "swr_calculator constant_dollar --wr 4 --portfolio \"us_stocks:60;us_bonds:40;\" \\\n"
+        "drawdown constant_dollar --wr 4 --portfolio \"us_stocks:60;us_bonds:40;\" \\\n"
         "    --inflation us_inflation --years 30 --rebalance yearly";
 
     s.flags = {
@@ -429,7 +429,7 @@ swr::cli::command_schema constant_percent_schema() {
         "Evaluate the success rate of withdrawing a fixed percent of the\n"
         "  current portfolio balance each year (no inflation adjustment).";
     s.example_invocation =
-        "swr_calculator constant_percent --pct 4 --portfolio \"us_stocks:60;us_bonds:40;\" \\\n"
+        "drawdown constant_percent --pct 4 --portfolio \"us_stocks:60;us_bonds:40;\" \\\n"
         "    --inflation us_inflation --years 30 --rebalance yearly";
 
     s.flags = {
@@ -590,7 +590,7 @@ int main(int argc, const char* argv[]) {
     auto args = parse_args(argc, argv);
 
     if (args.empty()) {
-        std::cout << "Usage: swr_calculator <command> [options]\n"
+        std::cout << "Usage: drawdown <command> [options]\n"
                   << "Commands:\n"
                   << "  constant_dollar       Evaluate a fixed-WR scenario\n"
                   << "  constant_percent      Fixed % of current balance each year\n"

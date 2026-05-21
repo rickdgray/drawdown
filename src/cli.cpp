@@ -95,7 +95,7 @@ parsed_args parse_flags(const std::vector<std::string>& args,
 }
 
 void render_help(std::ostream& out, const command_schema& schema) {
-    out << "Usage: swr_calculator " << schema.command_name << " [OPTIONS]\n";
+    out << "Usage: drawdown " << schema.command_name << " [OPTIONS]\n";
     if (!schema.one_line_description.empty()) {
         out << "\n  " << schema.one_line_description << "\n";
     }

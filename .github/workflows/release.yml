@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish release binary
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install g++-15
+        run: |
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt-get update -q
+          sudo apt-get install -y g++-15
+
+      - name: Build release binary
+        # Override RELEASE_FLAGS to drop -march=native (CPU-specific) and
+        # target a portable x86-64-v3 baseline (Haswell era; safe for most
+        # modern hardware). Static-link libstdc++/libgcc so the binary
+        # doesn't require the build runner's libstdc++ ABI on user machines.
+        run: |
+          make release \
+            RELEASE_FLAGS="-g -DNDEBUG -O3 -fomit-frame-pointer -march=x86-64-v3" \
+            LDFLAGS="-static-libstdc++ -static-libgcc"
+          strip release/drawdown
+
+      - name: Stage release artifact
+        run: |
+          mkdir -p dist
+          cp release/drawdown dist/drawdown-linux-x86_64
+          (cd dist && sha256sum drawdown-linux-x86_64 > drawdown-linux-x86_64.sha256)
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/drawdown-linux-x86_64
+            dist/drawdown-linux-x86_64.sha256
+          generate_release_notes: true
+          draft: false
+          prerelease: false

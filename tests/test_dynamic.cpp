@@ -4,7 +4,7 @@
 // (See accompanying file LICENSE or copy at
 //  http://opensource.org/licenses/MIT)
 //
-// Test main for swr_calculator. All TEST() blocks live here.
+// Test main for drawdown. All TEST() blocks live here.
 //=======================================================================
 #include "test_assert.hpp"
 #include "dynamic.hpp"
