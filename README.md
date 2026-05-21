@@ -12,7 +12,7 @@ Three CLI commands answer three different questions:
 
 ```
 drawdown dynamic_dollar --balance 850000 --current_age 67 --end_age 92 \
-    --portfolio "us_stocks:60;us_bonds:40;" --inflation us_inflation
+    --portfolio "us_stocks:60;us_bonds:40;"
 ```
 
 ```
@@ -75,13 +75,13 @@ drawdown constant_dollar --wr 4 --target_success 95 \
 |---|---|
 | `--wr <pct>` | Withdrawal rate (percent of initial portfolio) |
 | `--portfolio <spec>` | Portfolio spec, e.g. `"us_stocks:60;us_bonds:40;"` |
-| `--inflation <series>` | Inflation series, typically `us_inflation` |
 | `--years <int>` | Horizon length in years |
 
 **Common:**
 
 | Flag | Default | Meaning |
 |---|---|---|
+| `--inflation <series>` | `us_inflation` | Name of an inflation series (embedded or user-supplied) |
 | `--rebalance <method>` | `none` | `none` \| `monthly` \| `yearly` \| `threshold` |
 | `--start_year <year>` | `0` | Earliest historical backtest start year (`0` = use full data) |
 | `--end_year <year>` | `0` | Latest historical backtest start year (`0` = use full data) |
@@ -129,13 +129,13 @@ drawdown constant_percent --pct 4 --minimum_floor 3.5 \
 |---|---|
 | `--pct <pct>` | Percent of current balance withdrawn each year |
 | `--portfolio <spec>` | Portfolio spec, e.g. `"us_stocks:60;us_bonds:40;"` |
-| `--inflation <series>` | Inflation series, typically `us_inflation` |
 | `--years <int>` | Horizon length in years |
 
 **Common:**
 
 | Flag | Default | Meaning |
 |---|---|---|
+| `--inflation <series>` | `us_inflation` | Name of an inflation series (embedded or user-supplied) |
 | `--rebalance <method>` | `none` | `none` \| `monthly` \| `yearly` \| `threshold` |
 | `--start_year <year>` | `0` | Earliest historical backtest start year (`0` = use full data) |
 | `--end_year <year>` | `0` | Latest historical backtest start year (`0` = use full data) |
@@ -208,12 +208,12 @@ drawdown dynamic_dollar --balance 850000 \
 | `--current_age <years>` | Your current age (float allowed, e.g. `67.5`) |
 | `--end_age <years>` | Planning end age (integer) |
 | `--portfolio <spec>` | Portfolio spec, e.g. `"us_stocks:60;us_bonds:40;"` |
-| `--inflation <series>` | Inflation series, typically `us_inflation` |
 
 **Common:**
 
 | Flag | Default | Meaning |
 |---|---|---|
+| `--inflation <series>` | `us_inflation` | Name of an inflation series (embedded or user-supplied) |
 | `--target_success <pct>` | `80` | Target success rate. The solver finds the highest WR that hits at least this success rate. |
 | `--rebalance <method>` | `none` | `none` \| `monthly` \| `yearly` \| `threshold` |
 | `--ssa_income <dollars>` | `0` | Annual Social Security income (set to non-zero to enable). |
@@ -235,13 +235,13 @@ drawdown dynamic_dollar --balance 850000 \
 
 ## Output formats
 
-All three commands support three output modes:
+All three commands support three output modes. `--json` and `--csv` are mutually exclusive.
 
-- **text** (default): human-readable Inputs / Results / Notes sections
-- **`--json`**: flat JSON object: `{ "command": ..., "inputs": ..., "results": ... }`. Snake-case keys, dollars as floats (no `$` prefix), percentages as floats (e.g. `80.4`, not `"80.4%"`)
-- **`--csv`**: per-historical-start-year tabular detail. Columns: `start_year,start_month,success,terminal_value,total_withdrawn,worst_duration_months`. Preceded by comment lines (starting with `#`) describing the scenario
-
-`--json` and `--csv` are mutually exclusive.
+| Mode | Flag | Format |
+|---|---|---|
+| text | *(default)* | Human-readable `Inputs` / `Results` / `Notes` sections |
+| JSON | `--json` | Flat JSON object: `{ "command": ..., "inputs": ..., "results": ..., "notes": [...] }`. Snake-case keys, dollars as floats (no `$` prefix), percentages as floats (e.g. `80.4`, not `"80.4%"`) |
+| CSV | `--csv` | Per-historical-start-year tabular detail with columns `start_year,start_month,success,terminal_value,total_withdrawn,worst_duration_months`. Preceded by `#`-prefixed comment lines describing the scenario |
 
 ## Data sources
 

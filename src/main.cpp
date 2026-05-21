@@ -1,5 +1,6 @@
 //=======================================================================G
 // Copyright Baptiste Wicht 2019-2024.
+// Copyright Rick Gray 2026.
 // Distributed under the MIT License.
 // (See accompanying file LICENSE or copy at
 //  http://opensource.org/licenses/MIT)
@@ -31,10 +32,6 @@ std::vector<std::string> parse_args(int argc, const char* argv[]) {
     return args;
 }
 
-//-----------------------------------------------------------------------
-// dynamic_dollar — flag-style command
-//-----------------------------------------------------------------------
-
 swr::cli::command_schema dynamic_dollar_schema() {
     using namespace swr::cli;
     command_schema s;
@@ -52,8 +49,8 @@ swr::cli::command_schema dynamic_dollar_schema() {
         {"current_age",        FlagGroup::REQUIRED, FlagKind::VALUE,    "Your current age (float allowed)", ""},
         {"end_age",            FlagGroup::REQUIRED, FlagKind::VALUE,    "Planning end age (integer)", ""},
         {"portfolio",          FlagGroup::REQUIRED, FlagKind::VALUE,    "Portfolio spec, e.g. \"us_stocks:60;us_bonds:40;\"", ""},
-        {"inflation",          FlagGroup::REQUIRED, FlagKind::VALUE,    "Inflation series, e.g. \"us_inflation\"", ""},
 
+        {"inflation",          FlagGroup::COMMON,   FlagKind::VALUE,    "Inflation series, e.g. \"us_inflation\"", "us_inflation"},
         {"target_success",     FlagGroup::COMMON,   FlagKind::VALUE,    "Target success rate (percent)", "80"},
         {"rebalance",          FlagGroup::COMMON,   FlagKind::VALUE,    "none | monthly | yearly | threshold", "none"},
         {"ssa_income",         FlagGroup::COMMON,   FlagKind::VALUE,    "Annual SSA income (dollars; 0 = disabled)", "0"},
@@ -254,34 +251,21 @@ swr::cli::command_schema constant_dollar_schema() {
         "    --inflation us_inflation --years 30 --rebalance yearly";
 
     s.flags = {
-        {"wr",         FlagGroup::REQUIRED, FlagKind::VALUE,
-         "Withdrawal rate (percent of initial portfolio)", ""},
-        {"portfolio",  FlagGroup::REQUIRED, FlagKind::VALUE,
-         "Portfolio spec, e.g. \"us_stocks:60;us_bonds:40;\"", ""},
-        {"inflation",  FlagGroup::REQUIRED, FlagKind::VALUE,
-         "Inflation series, e.g. \"us_inflation\"", ""},
-        {"years",      FlagGroup::REQUIRED, FlagKind::VALUE,
-         "Horizon length (years)", ""},
+        {"wr",                 FlagGroup::REQUIRED, FlagKind::VALUE,    "Withdrawal rate (percent of initial portfolio)", ""},
+        {"portfolio",          FlagGroup::REQUIRED, FlagKind::VALUE,    "Portfolio spec, e.g. \"us_stocks:60;us_bonds:40;\"", ""},
+        {"years",              FlagGroup::REQUIRED, FlagKind::VALUE,    "Horizon length (years)", ""},
 
-        {"rebalance",      FlagGroup::COMMON, FlagKind::VALUE,
-         "none | monthly | yearly | threshold", "none"},
-        {"start_year",     FlagGroup::COMMON, FlagKind::VALUE,
-         "Earliest historical backtest start year (0 = full data)", "0"},
-        {"end_year",       FlagGroup::COMMON, FlagKind::VALUE,
-         "Latest historical backtest start year (0 = full data)", "0"},
-        {"initial_value",  FlagGroup::COMMON, FlagKind::VALUE,
-         "Starting portfolio value (dollars)", "1000"},
-        {"target_success", FlagGroup::COMMON, FlagKind::VALUE,
-         "If > 0, emit pass/fail vs this target (percent)", "0"},
-        {"json",           FlagGroup::COMMON, FlagKind::PRESENCE,
-         "Emit JSON output", ""},
-        {"csv",            FlagGroup::COMMON, FlagKind::PRESENCE,
-         "Emit CSV per-path output", ""},
+        {"inflation",          FlagGroup::COMMON,   FlagKind::VALUE,    "Inflation series", "us_inflation"},
+        {"rebalance",          FlagGroup::COMMON,   FlagKind::VALUE,    "none | monthly | yearly | threshold", "none"},
+        {"start_year",         FlagGroup::COMMON,   FlagKind::VALUE,    "Earliest historical backtest start year (0 = full data)", "0"},
+        {"end_year",           FlagGroup::COMMON,   FlagKind::VALUE,    "Latest historical backtest start year (0 = full data)", "0"},
+        {"initial_value",      FlagGroup::COMMON,   FlagKind::VALUE,    "Starting portfolio value (dollars)", "1000"},
+        {"target_success",     FlagGroup::COMMON,   FlagKind::VALUE,    "If > 0, emit pass/fail vs this target (percent)", "0"},
+        {"json",               FlagGroup::COMMON,   FlagKind::PRESENCE, "Emit JSON output", ""},
+        {"csv",                FlagGroup::COMMON,   FlagKind::PRESENCE, "Emit CSV per-path output", ""},
 
-        {"withdraw_frequency", FlagGroup::ADVANCED, FlagKind::VALUE,
-         "12 = yearly, 1 = monthly", "12"},
-        {"fees",               FlagGroup::ADVANCED, FlagKind::VALUE,
-         "TER as fraction", "0.001"},
+        {"withdraw_frequency", FlagGroup::ADVANCED, FlagKind::VALUE,    "12 = yearly, 1 = monthly", "12"},
+        {"fees",               FlagGroup::ADVANCED, FlagKind::VALUE,    "TER as fraction", "0.001"},
     };
     s.mutually_exclusive.push_back({"json", "csv"});
     return s;
@@ -433,34 +417,21 @@ swr::cli::command_schema constant_percent_schema() {
         "    --inflation us_inflation --years 30 --rebalance yearly";
 
     s.flags = {
-        {"pct",        FlagGroup::REQUIRED, FlagKind::VALUE,
-         "Percent of current balance withdrawn each year", ""},
-        {"portfolio",  FlagGroup::REQUIRED, FlagKind::VALUE,
-         "Portfolio spec, e.g. \"us_stocks:60;us_bonds:40;\"", ""},
-        {"inflation",  FlagGroup::REQUIRED, FlagKind::VALUE,
-         "Inflation series, e.g. \"us_inflation\"", ""},
-        {"years",      FlagGroup::REQUIRED, FlagKind::VALUE,
-         "Horizon length (years)", ""},
+        {"pct",                FlagGroup::REQUIRED, FlagKind::VALUE,    "Percent of current balance withdrawn each year", ""},
+        {"portfolio",          FlagGroup::REQUIRED, FlagKind::VALUE,    "Portfolio spec, e.g. \"us_stocks:60;us_bonds:40;\"", ""},
+        {"years",              FlagGroup::REQUIRED, FlagKind::VALUE,    "Horizon length (years)", ""},
 
-        {"rebalance",      FlagGroup::COMMON, FlagKind::VALUE,
-         "none | monthly | yearly | threshold", "none"},
-        {"start_year",     FlagGroup::COMMON, FlagKind::VALUE,
-         "Earliest historical backtest start year (0 = full data)", "0"},
-        {"end_year",       FlagGroup::COMMON, FlagKind::VALUE,
-         "Latest historical backtest start year (0 = full data)", "0"},
-        {"initial_value",  FlagGroup::COMMON, FlagKind::VALUE,
-         "Starting portfolio value (dollars)", "1000"},
-        {"minimum_floor",  FlagGroup::COMMON, FlagKind::VALUE,
-         "Minimum annual spending floor as percent of initial", "3.0"},
-        {"json",           FlagGroup::COMMON, FlagKind::PRESENCE,
-         "Emit JSON output", ""},
-        {"csv",            FlagGroup::COMMON, FlagKind::PRESENCE,
-         "Emit CSV per-path output", ""},
+        {"inflation",          FlagGroup::COMMON,   FlagKind::VALUE,    "Inflation series", "us_inflation"},
+        {"rebalance",          FlagGroup::COMMON,   FlagKind::VALUE,    "none | monthly | yearly | threshold", "none"},
+        {"start_year",         FlagGroup::COMMON,   FlagKind::VALUE,    "Earliest historical backtest start year (0 = full data)", "0"},
+        {"end_year",           FlagGroup::COMMON,   FlagKind::VALUE,    "Latest historical backtest start year (0 = full data)", "0"},
+        {"initial_value",      FlagGroup::COMMON,   FlagKind::VALUE,    "Starting portfolio value (dollars)", "1000"},
+        {"minimum_floor",      FlagGroup::COMMON,   FlagKind::VALUE,    "Minimum annual spending floor as percent of initial", "3.0"},
+        {"json",               FlagGroup::COMMON,   FlagKind::PRESENCE, "Emit JSON output", ""},
+        {"csv",                FlagGroup::COMMON,   FlagKind::PRESENCE, "Emit CSV per-path output", ""},
 
-        {"withdraw_frequency", FlagGroup::ADVANCED, FlagKind::VALUE,
-         "12 = yearly, 1 = monthly", "12"},
-        {"fees",               FlagGroup::ADVANCED, FlagKind::VALUE,
-         "TER as fraction", "0.001"},
+        {"withdraw_frequency", FlagGroup::ADVANCED, FlagKind::VALUE,    "12 = yearly, 1 = monthly", "12"},
+        {"fees",               FlagGroup::ADVANCED, FlagKind::VALUE,    "TER as fraction", "0.001"},
     };
     s.mutually_exclusive.push_back({"json", "csv"});
     return s;
