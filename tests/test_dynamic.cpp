@@ -413,6 +413,163 @@ TEST(dynamic_solver_matches_linear_sweep_reference) {
     CHECK_NEAR(dynamic_wr_pct, linear_max_wr, 0.05f);
 }
 
+// --- Short-flag parsing
+
+TEST(cli_parses_short_flag) {
+    using namespace swr::cli;
+    command_schema s;
+    s.command_name = "tx";
+    s.flags.push_back({"foo", "f", FlagGroup::REQUIRED, FlagKind::VALUE,
+                       "required flag with short alias", ""});
+    s.flags.push_back({"verbose", "v", FlagGroup::COMMON, FlagKind::PRESENCE,
+                       "presence flag with short alias", ""});
+
+    // Short-form value: -f hello
+    auto p1 = parse_flags({"-f", "hello"}, s);
+    CHECK_EQ(get_value(p1, s, "foo"), std::string("hello"));
+
+    // Short-form value with equals: -f=hello
+    auto p2 = parse_flags({"-f=hello"}, s);
+    CHECK_EQ(get_value(p2, s, "foo"), std::string("hello"));
+
+    // Short-form presence: -v
+    auto p3 = parse_flags({"-f", "x", "-v"}, s);
+    CHECK(get_presence(p3, "verbose"));
+}
+
+TEST(cli_short_and_long_interchangeable) {
+    using namespace swr::cli;
+    command_schema s;
+    s.command_name = "tx";
+    s.flags.push_back({"foo", "f", FlagGroup::REQUIRED, FlagKind::VALUE, "", ""});
+
+    // Result keyed by long name regardless of which form was passed.
+    auto p_short = parse_flags({"-f", "v1"}, s);
+    auto p_long  = parse_flags({"--foo", "v1"}, s);
+    CHECK_EQ(get_value(p_short, s, "foo"), get_value(p_long, s, "foo"));
+}
+
+// --- SSA integration in dynamic_dollar
+
+TEST(compute_with_ssa_before_start_age) {
+    // current_age 67, ssa starts at 70 — SSA is not yet active this year.
+    swr::dynamic_input in;
+    in.current_balance = 850000.0f;
+    in.current_age     = 67.0f;
+    in.end_age         = 92;
+    in.portfolio       = swr::parse_portfolio("us_stocks:60;us_bonds:40;", false);
+    swr::normalize_portfolio(in.portfolio);
+    in.inflation       = "us_inflation";
+    in.rebalance       = swr::Rebalancing::YEARLY;
+    in.target_success  = 80.0f;
+    in.ssa_enabled        = true;
+    in.ssa_annual_income  = 24000.0f;
+    in.ssa_start_age      = 70;
+
+    auto r = swr::compute(in);
+    CHECK(!r.error);
+    CHECK_NEAR(r.ssa_offset_this_year, 0.0f, 0.01f);
+    // Portfolio carries the full load this year
+    CHECK_NEAR(r.portfolio_withdrawal_this_year, r.final_spending_budget, 0.01f);
+}
+
+TEST(compute_with_ssa_at_or_past_start_age) {
+    // current_age 72, ssa starts at 70 — SSA is active.
+    swr::dynamic_input in;
+    in.current_balance = 850000.0f;
+    in.current_age     = 72.0f;
+    in.end_age         = 92;
+    in.portfolio       = swr::parse_portfolio("us_stocks:60;us_bonds:40;", false);
+    swr::normalize_portfolio(in.portfolio);
+    in.inflation       = "us_inflation";
+    in.rebalance       = swr::Rebalancing::YEARLY;
+    in.target_success  = 80.0f;
+    in.ssa_enabled        = true;
+    in.ssa_annual_income  = 24000.0f;
+    in.ssa_start_age      = 70;
+
+    auto r = swr::compute(in);
+    CHECK(!r.error);
+    CHECK_NEAR(r.ssa_offset_this_year, 24000.0f, 0.01f);
+    CHECK_NEAR(r.portfolio_withdrawal_this_year,
+               r.final_spending_budget - 24000.0f, 0.01f);
+}
+
+// --- Smoothing integration in dynamic_dollar
+
+TEST(compute_with_smoothing_caps_upward) {
+    // Set prior_year_amount far below the unsmoothed solver output.
+    // The cap should force smoothed_withdrawal to prior * 1.10.
+    swr::dynamic_input in;
+    in.current_balance = 850000.0f;
+    in.current_age     = 67.0f;
+    in.end_age         = 92;
+    in.portfolio       = swr::parse_portfolio("us_stocks:60;us_bonds:40;", false);
+    swr::normalize_portfolio(in.portfolio);
+    in.inflation       = "us_inflation";
+    in.rebalance       = swr::Rebalancing::YEARLY;
+    in.target_success  = 80.0f;
+    in.smoothing_enabled    = true;
+    in.smoothing_max_change = 0.10f;
+    in.prior_year_amount    = 30000.0f; // ~$43k unsmoothed > $33k cap
+
+    auto r = swr::compute(in);
+    CHECK(!r.error);
+    CHECK(r.smoothing_applied);
+    // smoothed should equal prior * 1.10 = 33000
+    CHECK_NEAR(r.smoothed_withdrawal, 33000.0f, 1.0f);
+    CHECK_NEAR(r.final_spending_budget, 33000.0f, 1.0f);
+    // raw is the un-smoothed solver output, well above the cap
+    CHECK(r.raw_calculated_withdrawal > 33000.0f);
+}
+
+TEST(compute_with_smoothing_inside_band_unchanged) {
+    // Prior matches the unsmoothed budget closely — no capping needed.
+    swr::dynamic_input in;
+    in.current_balance = 850000.0f;
+    in.current_age     = 67.0f;
+    in.end_age         = 92;
+    in.portfolio       = swr::parse_portfolio("us_stocks:60;us_bonds:40;", false);
+    swr::normalize_portfolio(in.portfolio);
+    in.inflation       = "us_inflation";
+    in.rebalance       = swr::Rebalancing::YEARLY;
+    in.target_success  = 80.0f;
+    in.smoothing_enabled    = true;
+    in.smoothing_max_change = 0.10f;
+    in.prior_year_amount    = 43000.0f; // close to the unsmoothed ~$43.5k
+
+    auto r = swr::compute(in);
+    CHECK(!r.error);
+    CHECK(!r.smoothing_applied);
+    CHECK_NEAR(r.smoothed_withdrawal, r.raw_calculated_withdrawal, 0.01f);
+}
+
+// --- Embedded data sanity
+
+TEST(embedded_us_stocks_first_and_last_data_points) {
+    // load_values() normalises and converts to monthly return ratios, so we
+    // check the shape of the data rather than raw CSV values.
+    auto portfolio = swr::parse_portfolio("us_stocks:100;", false);
+    swr::normalize_portfolio(portfolio);
+    auto values = swr::load_values(portfolio);
+    CHECK(!values.empty());
+    auto& us_stocks = values[0];
+    CHECK(!us_stocks.empty());
+
+    // First entry: month=1, year=1871; normalize_data() seeds the base to 1.0f
+    auto& first = us_stocks.front();
+    CHECK_EQ(first.month, (size_t)1);
+    CHECK_EQ(first.year,  (size_t)1871);
+    CHECK_NEAR(first.value, 1.0f, 0.01f);
+
+    // Last entry: month=12, year=2025; value is the monthly return ratio
+    // raw CSV: 83237634.92 / 83186717.38 ≈ 1.000612
+    auto& last = us_stocks.back();
+    CHECK_EQ(last.month, (size_t)12);
+    CHECK_EQ(last.year,  (size_t)2025);
+    CHECK_NEAR(last.value, 1.000612f, 0.0001f);
+}
+
 int main() {
     for (auto& tc : test::registry()) {
         test::current_test() = tc.name;
