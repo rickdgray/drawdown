@@ -146,7 +146,6 @@ int constant_dollar(const std::vector<std::string>& args) {
         sec.fields.push_back({"Terminal value (median)", (double)res.tv_median, swr::output::field::Hint::DOLLARS});
         sec.fields.push_back({"Terminal value (min)", (double)res.tv_minimum, swr::output::field::Hint::DOLLARS});
         sec.fields.push_back({"Terminal value (max)", (double)res.tv_maximum, swr::output::field::Hint::DOLLARS});
-        sec.fields.push_back({"Total withdrawn per path", (double)res.total_withdrawn, swr::output::field::Hint::DOLLARS});
         if (res.worst_duration > 0) {
             sec.fields.push_back({"Worst duration (months)", (int64_t)res.worst_duration, swr::output::field::Hint::INTEGER});
             sec.fields.push_back({"Worst start year", (int64_t)res.worst_starting_year, swr::output::field::Hint::INTEGER});

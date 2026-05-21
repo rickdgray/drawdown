@@ -18,6 +18,5 @@ Results
   Terminal value (median): $2776
   Terminal value (min): $0
   Terminal value (max): $16242
-  Total withdrawn per path: $2659556
   Worst duration (months): 301
   Worst start year:     1965

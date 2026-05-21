@@ -9,6 +9,9 @@
 #   make compile_commands      - regenerate compile_commands.json via bear (optional, gitignored)
 #   make clean                 - remove build directories
 
+# Default to parallel builds (override with `make -j1` for single-threaded).
+MAKEFLAGS += -j$(shell nproc 2>/dev/null || echo 1)
+
 CXX      := g++-15
 CXXFLAGS := -std=c++26 -Iinclude -Wextra -Wall -Wuninitialized -Wno-long-long -Winit-self -pthread
 
