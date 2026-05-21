@@ -275,7 +275,7 @@ TEST(output_text_contains_command_and_sections) {
     CHECK(s.find("test_cmd") != std::string::npos);
     CHECK(s.find("Inputs")   != std::string::npos);
     CHECK(s.find("Results")  != std::string::npos);
-    CHECK(s.find("$850000")  != std::string::npos);
+    CHECK(s.find("$850,000") != std::string::npos);
     CHECK(s.find("80.4%")    != std::string::npos);
 }
 

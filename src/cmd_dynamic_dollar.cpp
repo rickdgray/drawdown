@@ -174,6 +174,11 @@ int dynamic_dollar(const std::vector<std::string>& args) {
                               swr::output::field::Hint::YEARS});
         sec.fields.push_back({"Target success", (double)in.target_success,
                               swr::output::field::Hint::PERCENT});
+        std::string freq_label = (in.withdraw_frequency == 12) ? "yearly"
+                               : (in.withdraw_frequency == 1)  ? "monthly"
+                               : "every " + std::to_string(in.withdraw_frequency) + " months";
+        sec.fields.push_back({"Withdraw frequency", freq_label,
+                              swr::output::field::Hint::NONE});
         rep.sections.push_back(sec);
     }
     {

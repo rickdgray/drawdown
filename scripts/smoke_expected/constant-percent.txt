@@ -4,11 +4,11 @@ Inputs
   Portfolio:            us_stocks:60;us_bonds:40;
   Inflation series:     us_inflation
   Horizon:              30 years
-  Initial value:        $1000
+  Initial value:        $1,000
   Withdrawal pct:       4.0%
   Minimum floor:        3.0%
   Rebalance:            yearly
-  Withdraw frequency:   12
+  Withdraw frequency:   yearly
   Fees (TER):           0.1%
 
 Results
@@ -16,7 +16,7 @@ Results
   Spending (avg):       $907
   Spending (median):    $813
   Spending (min):       $433
-  Spending (max):       $2144
-  Terminal value (avg): $3013
-  Terminal value (median): $2721
+  Spending (max):       $2,144
+  Terminal value (avg): $3,013
+  Terminal value (median): $2,721
   Terminal value (min): $597

@@ -4,19 +4,19 @@ Inputs
   Portfolio:            us_stocks:60;us_bonds:40;
   Inflation series:     us_inflation
   Horizon:              30 years
-  Initial value:        $1000
+  Initial value:        $1,000
   Withdrawal rate:      4.0%
   Rebalance:            yearly
-  Withdraw frequency:   12
+  Withdraw frequency:   yearly
   Fees (TER):           0.1%
 
 Results
   Success rate:         96.2%
   Successes:            1443
   Failures:             57
-  Terminal value (avg): $3612
-  Terminal value (median): $2776
+  Terminal value (avg): $3,612
+  Terminal value (median): $2,776
   Terminal value (min): $0
-  Terminal value (max): $16242
+  Terminal value (max): $16,242
   Worst duration (months): 301
   Worst start year:     1965

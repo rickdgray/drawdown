@@ -8,6 +8,8 @@
 //=======================================================================
 #include "output_formatter.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <iomanip>
 #include <ostream>
 #include <sstream>
@@ -17,6 +19,23 @@
 namespace swr::output {
 
 namespace {
+
+std::string format_with_commas(double v) {
+    // Round to integer (we already use setprecision(0) for dollars),
+    // then insert commas every 3 digits from the right.
+    bool negative = v < 0;
+    long long n = static_cast<long long>(std::round(std::abs(v)));
+    std::string num = std::to_string(n);
+    std::string out;
+    int count = 0;
+    for (auto it = num.rbegin(); it != num.rend(); ++it) {
+        if (count > 0 && count % 3 == 0) out.push_back(',');
+        out.push_back(*it);
+        ++count;
+    }
+    std::reverse(out.begin(), out.end());
+    return negative ? "-" + out : out;
+}
 
 std::string format_value_text(const field& f) {
     std::stringstream ss;
@@ -36,8 +55,7 @@ std::string format_value_text(const field& f) {
 
     switch (f.hint) {
         case field::Hint::DOLLARS:
-            ss << "$" << std::setprecision(0) << v;
-            break;
+            return "$" + format_with_commas(v);
         case field::Hint::PERCENT:
             ss << std::setprecision(1) << v << "%";
             break;

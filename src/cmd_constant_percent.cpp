@@ -130,7 +130,11 @@ int constant_percent(const std::vector<std::string>& args) {
         sec.fields.push_back({"Minimum floor", (double)(sc.minimum * 100.0f), swr::output::field::Hint::PERCENT});
         sec.fields.push_back({"Rebalance", swr::cli::get_value(p, schema, "rebalance"),
                               swr::output::field::Hint::NONE});
-        sec.fields.push_back({"Withdraw frequency", (int64_t)sc.withdraw_frequency, swr::output::field::Hint::INTEGER});
+        std::string freq_label = (sc.withdraw_frequency == 12) ? "yearly"
+                               : (sc.withdraw_frequency == 1)  ? "monthly"
+                               : "every " + std::to_string(sc.withdraw_frequency) + " months";
+        sec.fields.push_back({"Withdraw frequency", freq_label,
+                              swr::output::field::Hint::NONE});
         sec.fields.push_back({"Fees (TER)", (double)(sc.fees * 100.0f), swr::output::field::Hint::PERCENT});
         rep.sections.push_back(sec);
     }
