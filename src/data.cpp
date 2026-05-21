@@ -13,12 +13,48 @@
 #include <mutex>
 
 #include "data.hpp"
+#include "embedded_data.hpp"
 
 namespace {
 
 std::mutex server_lock;
 
 std::unordered_map<std::string, swr::data_vector> data_cache;
+
+swr::data_vector parse_csv_bytes(const std::string& name, std::span<const char> bytes) {
+    swr::data_vector points;
+    points.name = name;
+
+    size_t pos = 0;
+    while (pos < bytes.size()) {
+        size_t eol = pos;
+        while (eol < bytes.size() && bytes[eol] != '\n') ++eol;
+        std::string_view line(bytes.data() + pos, eol - pos);
+        pos = eol + 1;
+        if (line.empty()) continue;
+
+        auto index1 = line.find(',');
+        auto index2 = line.find(',', index1 + 1);
+        if (index1 == std::string_view::npos || index2 == std::string_view::npos) continue;
+
+        std::string month(line.substr(0, index1));
+        std::string year(line.substr(index1 + 1, index2 - index1 - 1));
+        std::string value(line.substr(index2 + 1));
+        if (!value.empty() && value.back() == '\r') value.pop_back();
+        if (!value.empty() && value.front() == '"') {
+            value = value.substr(1, value.size() - 2);
+        }
+        std::erase(value, ',');
+
+        swr::data d;
+        d.month = atoi(month.c_str());
+        d.year  = atoi(year.c_str());
+        d.value = atof(value.c_str());
+        points.data.push_back(d);
+    }
+
+    return points;
+}
 
 swr::data_vector load_data(const std::string& name, const std::string& path) {
     {
@@ -30,36 +66,42 @@ swr::data_vector load_data(const std::string& name, const std::string& path) {
 
     swr::data_vector points;
 
-    std::ifstream file(path);
+    // Try embedded data first.
+    if (auto bytes = swr::embedded::find(name)) {
+        points = parse_csv_bytes(name, *bytes);
+    } else {
+        // Fall back to file I/O.
+        std::ifstream file(path);
 
-    if (!file) {
-        std::cout << "Impossible to load data " << path << std::endl;
-        return {};
-    }
-
-    points.name = name;
-
-    std::string line;
-    while (std::getline(file, line)) {
-        auto index1 = line.find(',');
-        auto index2 = line.find(',', index1 + 1);
-
-        std::string month(line.begin(), line.begin() + index1);
-        std::string year(line.begin() + index1 + 1, line.begin() + index2);
-        std::string value(line.begin() + index2 + 1, line.end());
-
-        if (value[0] == '\"') {
-            value = value.substr(1, value.size() - 3);
+        if (!file) {
+            std::cout << "Impossible to load data " << path << std::endl;
+            return {};
         }
 
-        std::erase(value, ',');
+        points.name = name;
 
-        swr::data data;
-        data.month = atoi(month.c_str());
-        data.year  = atoi(year.c_str());
-        data.value = atof(value.c_str());
+        std::string line;
+        while (std::getline(file, line)) {
+            auto index1 = line.find(',');
+            auto index2 = line.find(',', index1 + 1);
 
-        points.data.push_back(data);
+            std::string month(line.begin(), line.begin() + index1);
+            std::string year(line.begin() + index1 + 1, line.begin() + index2);
+            std::string value(line.begin() + index2 + 1, line.end());
+
+            if (value[0] == '\"') {
+                value = value.substr(1, value.size() - 3);
+            }
+
+            std::erase(value, ',');
+
+            swr::data data;
+            data.month = atoi(month.c_str());
+            data.year  = atoi(year.c_str());
+            data.value = atof(value.c_str());
+
+            points.data.push_back(data);
+        }
     }
 
     {
