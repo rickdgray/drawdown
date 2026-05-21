@@ -8,11 +8,43 @@
 //=======================================================================
 #include "cli.hpp"
 
+#include <cctype>
 #include <map>
 #include <ostream>
 #include <stdexcept>
 
 namespace swr::cli {
+
+namespace {
+
+// Scan a value for `-<flag>` substrings that look like the user forgot a space.
+// Returns the matched flag name (without leading dash) if a known flag is
+// found embedded, or empty string otherwise.
+std::string find_concatenated_flag(
+    const std::string& value,
+    const std::map<std::string, const flag_spec*>& by_name,
+    const std::map<std::string, const flag_spec*>& by_short)
+{
+    // Only look mid-value (skip position 0 to allow negative numbers as values).
+    for (size_t i = 1; i < value.size(); ++i) {
+        if (value[i] != '-') continue;
+        size_t j = i + 1;
+        while (j < value.size() &&
+               (std::isalnum(static_cast<unsigned char>(value[j])) ||
+                value[j] == '-' || value[j] == '_')) {
+            ++j;
+        }
+        if (j == i + 1) continue;
+        std::string candidate = value.substr(i + 1, j - i - 1);
+        if (by_short.count(candidate) || by_name.count(candidate)) {
+            return candidate;
+        }
+    }
+    return "";
+}
+
+} // namespace
+
 
 parsed_args parse_flags(const std::vector<std::string>& args,
                         const command_schema& schema) {
@@ -71,7 +103,10 @@ parsed_args parse_flags(const std::vector<std::string>& args,
             spec      = it->second;
             long_name = spec->name; // key by long name
         } else {
-            throw std::runtime_error("unexpected positional arg: " + a);
+            throw std::runtime_error(
+                "unexpected positional arg: '" + a + "'. "
+                "Each flag and its value are separate tokens. "
+                "Did you forget a space?");
         }
 
         if (spec->kind == FlagKind::PRESENCE) {
@@ -90,6 +125,15 @@ parsed_args parse_flags(const std::vector<std::string>& args,
                                              " requires a value");
                 }
                 value = args[++i];
+            }
+            // Detect cases like `-si 30000-sa` where the user forgot a space
+            // and the value swallowed what looks like another flag.
+            std::string concat = find_concatenated_flag(value, by_name, by_short);
+            if (!concat.empty()) {
+                throw std::runtime_error(
+                    "flag --" + long_name + " value '" + value +
+                    "' appears to contain the flag '-" + concat +
+                    "'. Did you forget a space between values?");
             }
             result.values[long_name]   = value;
             result.presence[long_name] = true;

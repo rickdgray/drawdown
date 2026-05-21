@@ -226,6 +226,56 @@ TEST(cli_help_skips_required_check) {
     CHECK(p.help_requested);
 }
 
+TEST(cli_concatenated_flag_in_value_detected) {
+    using namespace swr::cli;
+    command_schema s;
+    s.command_name = "tx";
+    s.flags.push_back({"ssa-income",    "si", FlagGroup::COMMON, FlagKind::VALUE,
+                       "annual ssa income", ""});
+    s.flags.push_back({"ssa-start-age", "sa", FlagGroup::COMMON, FlagKind::VALUE,
+                       "ssa start age", ""});
+    bool threw = false;
+    try {
+        // Mimics the real failure: user typed `-si 30000-sa 62`. The token
+        // `30000-sa` got consumed as the value of -si, swallowing the next flag.
+        parse_flags({"-si", "30000-sa", "62"}, s);
+    } catch (const std::runtime_error& e) {
+        threw = true;
+        std::string msg = e.what();
+        CHECK(msg.find("ssa-income") != std::string::npos);
+        CHECK(msg.find("-sa")        != std::string::npos);
+        CHECK(msg.find("space")      != std::string::npos);
+    }
+    CHECK(threw);
+}
+
+TEST(cli_negative_number_value_is_not_a_concatenated_flag) {
+    // Values legitimately starting with `-` (e.g. negative numbers) must NOT
+    // trigger the concatenated-flag detector.
+    using namespace swr::cli;
+    command_schema s;
+    s.command_name = "tx";
+    s.flags.push_back({"offset", "o", FlagGroup::COMMON, FlagKind::VALUE, "", ""});
+    // also register a flag named "50" would be silly, but ensure a leading
+    // dash followed by digits doesn't trip the check.
+    auto p = parse_flags({"-o", "-50"}, s);
+    CHECK_EQ(get_value(p, s, "offset"), std::string("-50"));
+}
+
+TEST(cli_positional_arg_error_mentions_spaces) {
+    auto schema = make_test_schema();
+    bool threw = false;
+    try {
+        parse_flags({"--foo", "x", "stray"}, schema);
+    } catch (const std::runtime_error& e) {
+        threw = true;
+        std::string msg = e.what();
+        CHECK(msg.find("stray") != std::string::npos);
+        CHECK(msg.find("space") != std::string::npos);
+    }
+    CHECK(threw);
+}
+
 // --- Task 10: render_help
 
 TEST(cli_render_help_groups_flags) {
