@@ -43,7 +43,7 @@ swr::cli::command_schema dynamic_dollar_schema() {
 
         {"inflation",          "i",  FlagGroup::COMMON,   FlagKind::VALUE,    "Inflation series, e.g. \"us_inflation\"", "us_inflation"},
         {"target-success",     "t",  FlagGroup::COMMON,   FlagKind::VALUE,    "Target success rate (percent)", "80"},
-        {"rebalance",          "r",  FlagGroup::COMMON,   FlagKind::VALUE,    "none | monthly | yearly | threshold", "none"},
+        {"rebalance",          "r",  FlagGroup::COMMON,   FlagKind::VALUE,    "none | monthly | yearly", "none"},
         {"ssa-income",         "si", FlagGroup::COMMON,   FlagKind::VALUE,    "Annual SSA income (dollars; 0 = disabled)", "0"},
         {"ssa-start-age",      "sa", FlagGroup::COMMON,   FlagKind::VALUE,    "Age SSA begins (required if --ssa-income > 0)", "0"},
         {"smoothing",          "s",  FlagGroup::COMMON,   FlagKind::VALUE,    "Max YoY change as fraction, e.g. 0.10 (0 = disabled)", "0"},

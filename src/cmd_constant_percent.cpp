@@ -39,7 +39,7 @@ swr::cli::command_schema constant_percent_schema() {
         {"years",              "y",   FlagGroup::REQUIRED, FlagKind::VALUE,    "Horizon length (years)", ""},
 
         {"inflation",          "i",   FlagGroup::COMMON,   FlagKind::VALUE,    "Inflation series", "us_inflation"},
-        {"rebalance",          "r",   FlagGroup::COMMON,   FlagKind::VALUE,    "none | monthly | yearly | threshold", "none"},
+        {"rebalance",          "r",   FlagGroup::COMMON,   FlagKind::VALUE,    "none | monthly | yearly", "none"},
         {"start-year",         "sy",  FlagGroup::COMMON,   FlagKind::VALUE,    "Earliest historical backtest start year (0 = full data)", "0"},
         {"end-year",           "ey",  FlagGroup::COMMON,   FlagKind::VALUE,    "Latest historical backtest start year (0 = full data)", "0"},
         {"initial-value",      "iv",  FlagGroup::COMMON,   FlagKind::VALUE,    "Starting portfolio value (dollars)", "1000"},
