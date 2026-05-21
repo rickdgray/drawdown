@@ -1,18 +1,5 @@
 <p align="center">
-    <svg xmlns="http://www.w3.org/2000/svg" width="400" viewBox="0 0 195 68" role="img">
-        <rect width="195" height="68" rx="14" fill="#DDF0E8"/>
-        <g stroke="#2B6648" stroke-linecap="round" stroke-width="1.7" fill="none">
-        <line x1="20" y1="25" x2="40" y2="25"/>
-        <line x1="20" y1="33" x2="35" y2="33"/>
-        <line x1="20" y1="41" x2="30" y2="41"/>
-        </g>
-        <text x="54" y="42"
-        font-family="'Roboto','Helvetica Neue',Helvetica,Arial,sans-serif"
-        font-weight="300"
-        font-size="25"
-        fill="#2B6648"
-        letter-spacing="1">drawdown</text>
-    </svg>
+    <img src="logo.svg">
 </p>
 
 Compute sustainable retirement withdrawals using historical backtesting against US market data (stocks, bonds, inflation, plus several alternatives).
@@ -270,7 +257,14 @@ To use your own data, place a CSV named `<series>.csv` in `stock-data/` next to 
 
 ## Build
 
-Linux / WSL only. Requires GCC 15 (or newer) and GNU Make.
+Supports Linux (x86_64), macOS (arm64), and Windows (x86_64) — all 64-bit.
+Requires GCC 15 (or newer) and GNU Make.
+
+- **Linux:** g++-15 from a package or the ubuntu-toolchain-r/test PPA
+- **macOS:** g++-15 via Homebrew (`brew install gcc@15`)
+- **Windows:** g++-15 via MSYS2 (`pacman -S mingw-w64-x86_64-gcc make`), run from a MINGW64 shell
+
+(One unified Makefile; same flags across platforms.)
 
 ```
 make                  # default: release_debug build
@@ -283,7 +277,13 @@ make compile_commands # regenerate compile_commands.json via bear (optional)
 make clean            # remove build directories
 ```
 
-A tagged release (`v*` tag pushed to GitHub) builds a portable `drawdown-linux-x86_64` binary via `.github/workflows/release.yml`. The build is static-linked libstdc++/libgcc, stripped, ~1.7 MB plus the embedded historical data.
+A tagged release (`v*` tag pushed to GitHub) builds portable binaries for all three platforms via `.github/workflows/release.yml`. Each binary is static-linked libstdc++/libgcc and stripped:
+
+| Platform | Artifact |
+|---|---|
+| Linux x86_64 | `drawdown-linux-x86_64` |
+| macOS arm64 | `drawdown-macos-arm64` |
+| Windows x86_64 | `drawdown-windows-x86_64.exe` |
 
 ## Background
 

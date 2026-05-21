@@ -1,4 +1,4 @@
-name: Linux Build
+name: Build
 
 on:
   push:
@@ -8,21 +8,61 @@ on:
 
 jobs:
   build:
-    name: Compile and test on Linux
-    runs-on: ubuntu-latest
+    name: Build + test on ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+            shell: bash
+          - os: macos-latest
+            platform: macos-arm64
+            shell: bash
+          - os: windows-latest
+            platform: windows-x86_64
+            shell: "msys2 {0}"
+
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Install g++-15
-      run: |
-        sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-        sudo apt-get update -q
-        sudo apt-get install -y g++-15
+      - name: Setup MSYS2 (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          install: mingw-w64-x86_64-gcc make
+          update: false
 
-    - name: Build binaries
-      run: make -j$(nproc) release_debug
+      - name: Install g++-15 (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt-get update -q
+          sudo apt-get install -y g++-15
 
-    - name: Run tests
-      run: make test
+      - name: Install g++-15 (macOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install gcc@15
+
+      - name: Build (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        run: make release_debug
+
+      - name: Build (Windows)
+        if: matrix.os == 'windows-latest'
+        run: make release_debug CXX=g++
+
+      - name: Run tests (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        run: make test
+
+      - name: Run tests (Windows)
+        if: matrix.os == 'windows-latest'
+        run: make test CXX=g++

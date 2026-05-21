@@ -10,9 +10,16 @@
 #   make clean                 - remove build directories
 
 # Default to parallel builds (override with `make -j1` for single-threaded).
-MAKEFLAGS += -j$(shell nproc 2>/dev/null || echo 1)
+MAKEFLAGS += -j$(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 
 CXX      := g++-15
+
+# On MSYS2/MinGW, g++ appends .exe to the output binary.
+ifeq ($(OS),Windows_NT)
+    EXE := .exe
+else
+    EXE :=
+endif
 CXXFLAGS := -std=c++26 -Iinclude -Wextra -Wall -Wuninitialized -Wno-long-long -Winit-self -pthread
 
 RELEASE_FLAGS       := -g -DNDEBUG -O3 -fomit-frame-pointer -march=native
@@ -34,14 +41,14 @@ DEP_DEBUG         := $(OBJ_DEBUG:.o=.d)
 # Test driver: links production sources (excluding main.cpp) with the test main
 TEST_SRC := tests/test_dynamic.cpp \
             $(filter-out src/main.cpp,$(SRC_FILES))
-TEST_BIN := release_debug/test_dynamic
+TEST_BIN := release_debug/test_dynamic$(EXE)
 
 .PHONY: default release release_debug debug all clean test compile_commands
 default: release_debug
 
-release:       release/drawdown
-release_debug: release_debug/drawdown
-debug:         debug/drawdown
+release:       release/drawdown$(EXE)
+release_debug: release_debug/drawdown$(EXE)
+debug:         debug/drawdown$(EXE)
 all:           release release_debug debug
 
 # Per-mode pattern rules for compilation
@@ -58,15 +65,15 @@ debug/%.o: src/%.cpp
 	$(CXX) $(CXXFLAGS) $(DEBUG_FLAGS) -MMD -MP -c $< -o $@
 
 # Linking. LDFLAGS is an extension point for CI (e.g. -static-libstdc++).
-release/drawdown: $(OBJ_RELEASE)
+release/drawdown$(EXE): $(OBJ_RELEASE)
 	@mkdir -p release
 	$(CXX) $(CXXFLAGS) $(RELEASE_FLAGS) -o $@ $^ $(LDFLAGS)
 
-release_debug/drawdown: $(OBJ_RELEASE_DEBUG)
+release_debug/drawdown$(EXE): $(OBJ_RELEASE_DEBUG)
 	@mkdir -p release_debug
 	$(CXX) $(CXXFLAGS) $(RELEASE_DEBUG_FLAGS) -o $@ $^ $(LDFLAGS)
 
-debug/drawdown: $(OBJ_DEBUG)
+debug/drawdown$(EXE): $(OBJ_DEBUG)
 	@mkdir -p debug
 	$(CXX) $(CXXFLAGS) $(DEBUG_FLAGS) -o $@ $^ $(LDFLAGS)
 

@@ -9,43 +9,117 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    name: Build and publish release binary
-    runs-on: ubuntu-latest
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+            artifact: drawdown-linux-x86_64
+            shell: bash
+            release_flags: "-g -DNDEBUG -O3 -fomit-frame-pointer -march=x86-64-v3"
+            ldflags: "-static-libstdc++ -static-libgcc"
+            binary_path: release/drawdown
+          - os: macos-latest
+            platform: macos-arm64
+            artifact: drawdown-macos-arm64
+            shell: bash
+            release_flags: "-g -DNDEBUG -O3 -fomit-frame-pointer"
+            ldflags: "-static-libstdc++ -static-libgcc"
+            binary_path: release/drawdown
+          - os: windows-latest
+            platform: windows-x86_64
+            artifact: drawdown-windows-x86_64.exe
+            shell: "msys2 {0}"
+            release_flags: "-g -DNDEBUG -O3 -fomit-frame-pointer -march=x86-64-v3"
+            ldflags: "-static -static-libstdc++ -static-libgcc"
+            binary_path: release/drawdown.exe
+
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install g++-15
+      - name: Setup MSYS2 (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          install: mingw-w64-x86_64-gcc make
+          update: false
+
+      - name: Install g++-15 (Linux)
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update -q
           sudo apt-get install -y g++-15
 
+      - name: Install g++-15 (macOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install gcc@15
+
       - name: Build release binary
-        # Override RELEASE_FLAGS to drop -march=native (CPU-specific) and
-        # target a portable x86-64-v3 baseline (Haswell era; safe for most
-        # modern hardware). Static-link libstdc++/libgcc so the binary
-        # doesn't require the build runner's libstdc++ ABI on user machines.
+        env:
+          MATRIX_RELEASE_FLAGS: ${{ matrix.release_flags }}
+          MATRIX_LDFLAGS: ${{ matrix.ldflags }}
         run: |
-          make release \
-            RELEASE_FLAGS="-g -DNDEBUG -O3 -fomit-frame-pointer -march=x86-64-v3" \
-            LDFLAGS="-static-libstdc++ -static-libgcc"
-          strip release/drawdown
+          # On macOS, brew installs g++-15 as /opt/homebrew/bin/g++-15 (arm64)
+          # which the Makefile's `CXX := g++-15` should find via PATH. On Windows
+          # MSYS2, g++ from MINGW64 is the default `g++` (no -15 suffix). Override
+          # CXX for Windows.
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+              make release CXX=g++ RELEASE_FLAGS="$MATRIX_RELEASE_FLAGS" LDFLAGS="$MATRIX_LDFLAGS"
+          else
+              make release RELEASE_FLAGS="$MATRIX_RELEASE_FLAGS" LDFLAGS="$MATRIX_LDFLAGS"
+          fi
+          strip "${{ matrix.binary_path }}"
 
       - name: Stage release artifact
         run: |
           mkdir -p dist
-          cp release/drawdown dist/drawdown-linux-x86_64
-          (cd dist && sha256sum drawdown-linux-x86_64 > drawdown-linux-x86_64.sha256)
+          cp "${{ matrix.binary_path }}" "dist/${{ matrix.artifact }}"
+          cd dist
+          if command -v sha256sum >/dev/null 2>&1; then
+              sha256sum "${{ matrix.artifact }}" > "${{ matrix.artifact }}.sha256"
+          else
+              shasum -a 256 "${{ matrix.artifact }}" > "${{ matrix.artifact }}.sha256"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            dist/${{ matrix.artifact }}
+            dist/${{ matrix.artifact }}.sha256
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Flatten artifacts directory
+        run: |
+          mkdir -p release-files
+          find artifacts -type f -exec cp {} release-files/ \;
+          ls -la release-files/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            dist/drawdown-linux-x86_64
-            dist/drawdown-linux-x86_64.sha256
+          files: release-files/*
           generate_release_notes: true
           draft: false
           prerelease: false
