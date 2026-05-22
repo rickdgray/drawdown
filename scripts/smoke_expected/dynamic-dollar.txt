@@ -9,10 +9,10 @@ Inputs
   Withdraw frequency:   yearly
 
 Results
-  Raw calculated:       $43,538
-  Smoothed:             $43,538
-  Final budget:         $43,538
+  Raw calculated:       $43,774
+  Smoothed:             $43,774
+  Final budget:         $43,774
   Success at budget:    80.0%
   SSA offset this year: $0
-  Portfolio withdrawal: $43,538
+  Portfolio withdrawal: $43,774
   Signal vs prior:      none

@@ -57,7 +57,14 @@ std::string format_value_text(const field& f) {
         case field::Hint::DOLLARS:
             return "$" + format_with_commas(v);
         case field::Hint::PERCENT:
-            ss << std::setprecision(1) << v << "%";
+            // Use 2 decimals for sub-1% values (e.g. expense ratios like
+            // 0.05%) where 1-decimal rounding would mislead. Otherwise 1
+            // decimal is plenty (96.7%, 4.0%, etc).
+            if (std::abs(v) < 1.0) {
+                ss << std::setprecision(2) << v << "%";
+            } else {
+                ss << std::setprecision(1) << v << "%";
+            }
             break;
         case field::Hint::INTEGER:
             ss << std::setprecision(0) << v;

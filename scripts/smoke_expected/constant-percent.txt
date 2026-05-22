@@ -9,14 +9,14 @@ Inputs
   Minimum floor:        3.0%
   Rebalance:            yearly
   Withdraw frequency:   yearly
-  Fees (TER):           0.1%
+  Fees (TER):           0.05%
 
 Results
   Success rate:         100.0%
-  Spending (avg):       $907
-  Spending (median):    $813
-  Spending (min):       $433
-  Spending (max):       $2,144
-  Terminal value (avg): $3,013
-  Terminal value (median): $2,721
-  Terminal value (min): $597
+  Spending (avg):       $914
+  Spending (median):    $817
+  Spending (min):       $436
+  Spending (max):       $2,165
+  Terminal value (avg): $3,067
+  Terminal value (median): $2,766
+  Terminal value (min): $616

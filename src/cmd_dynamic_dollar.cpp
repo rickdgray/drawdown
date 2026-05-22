@@ -43,7 +43,7 @@ swr::cli::command_schema dynamic_dollar_schema() {
 
         {"inflation",          "i",  FlagGroup::COMMON,   FlagKind::VALUE,    "Inflation series, e.g. \"us_inflation\"", "us_inflation"},
         {"target-success",     "t",  FlagGroup::COMMON,   FlagKind::VALUE,    "Target success rate (percent)", "80"},
-        {"rebalance",          "r",  FlagGroup::COMMON,   FlagKind::VALUE,    "none | monthly | yearly", "none"},
+        {"rebalance",          "r",  FlagGroup::COMMON,   FlagKind::VALUE,    "none | monthly | yearly", "yearly"},
         {"ssa-income",         "si", FlagGroup::COMMON,   FlagKind::VALUE,    "Annual SSA income (dollars; 0 = disabled)", "0"},
         {"ssa-start-age",      "sa", FlagGroup::COMMON,   FlagKind::VALUE,    "Age SSA begins (required if --ssa-income > 0)", "0"},
         {"smoothing",          "s",  FlagGroup::COMMON,   FlagKind::VALUE,    "Max YoY change as fraction, e.g. 0.10 (0 = disabled)", "0"},
@@ -54,7 +54,7 @@ swr::cli::command_schema dynamic_dollar_schema() {
         {"start-year",         "sy", FlagGroup::ADVANCED, FlagKind::VALUE,    "Earliest historical backtest start year (default: full data)", "0"},
         {"end-year",           "ey", FlagGroup::ADVANCED, FlagKind::VALUE,    "Latest historical backtest start year (default: full data)", "0"},
         {"withdraw-frequency", "wf", FlagGroup::ADVANCED, FlagKind::VALUE,    "12 = yearly, 1 = monthly", "12"},
-        {"fees",               "f",  FlagGroup::ADVANCED, FlagKind::VALUE,    "TER as fraction", "0.001"},
+        {"fees",               "f",  FlagGroup::ADVANCED, FlagKind::VALUE,    "TER as fraction", "0.0005"},
         {"solver-tolerance",   "st", FlagGroup::ADVANCED, FlagKind::VALUE,    "Binary-search stopping tolerance (dollars)", "1"},
     };
     s.mutually_exclusive.push_back({"json", "csv"});

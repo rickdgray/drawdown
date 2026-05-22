@@ -81,7 +81,7 @@ drawdown constant-dollar --withdrawal-rate 4 --target-success 95 \
 | Short | Long | Default | Meaning |
 |---|---|---|---|
 | `-i` | `--inflation <series>` | `us_inflation` | Name of an inflation series (embedded or user-supplied) |
-| `-r` | `--rebalance <method>` | `none` | `none` \| `monthly` \| `yearly` \| `threshold` |
+| `-r` | `--rebalance <method>` | `yearly` | `none` \| `monthly` \| `yearly` |
 | `-sy` | `--start-year <year>` | `0` | Earliest historical backtest start year (`0` = use full data) |
 | `-ey` | `--end-year <year>` | `0` | Latest historical backtest start year (`0` = use full data) |
 | `-iv` | `--initial-value <dollars>` | `1000` | Starting portfolio value |
@@ -94,7 +94,7 @@ drawdown constant-dollar --withdrawal-rate 4 --target-success 95 \
 | Short | Long | Default | Meaning |
 |---|---|---|---|
 | `-wf` | `--withdraw-frequency <n>` | `12` | `12` = yearly, `1` = monthly |
-| `-f` | `--fees <fraction>` | `0.001` | TER as a fraction (e.g. `0.001` = 0.1%) |
+| `-f` | `--fees <fraction>` | `0.0005` | TER as a fraction (e.g. `0.0005` = 0.05%, typical broad-market index ETF) |
 
 ---
 
@@ -133,7 +133,7 @@ drawdown constant-percent --percent 4 --minimum-floor 3.5 \
 | Short | Long | Default | Meaning |
 |---|---|---|---|
 | `-i` | `--inflation <series>` | `us_inflation` | Name of an inflation series (embedded or user-supplied) |
-| `-r` | `--rebalance <method>` | `none` | `none` \| `monthly` \| `yearly` \| `threshold` |
+| `-r` | `--rebalance <method>` | `yearly` | `none` \| `monthly` \| `yearly` |
 | `-sy` | `--start-year <year>` | `0` | Earliest historical backtest start year (`0` = use full data) |
 | `-ey` | `--end-year <year>` | `0` | Latest historical backtest start year (`0` = use full data) |
 | `-iv` | `--initial-value <dollars>` | `1000` | Starting portfolio value |
@@ -146,7 +146,7 @@ drawdown constant-percent --percent 4 --minimum-floor 3.5 \
 | Short | Long | Default | Meaning |
 |---|---|---|---|
 | `-wf` | `--withdraw-frequency <n>` | `12` | `12` = yearly, `1` = monthly |
-| `-f` | `--fees <fraction>` | `0.001` | TER as a fraction (e.g. `0.001` = 0.1%) |
+| `-f` | `--fees <fraction>` | `0.0005` | TER as a fraction (e.g. `0.0005` = 0.05%, typical broad-market index ETF) |
 
 ---
 
@@ -209,7 +209,7 @@ drawdown dynamic-dollar --balance 850000 \
 |---|---|---|---|
 | `-i` | `--inflation <series>` | `us_inflation` | Name of an inflation series (embedded or user-supplied) |
 | `-t` | `--target-success <pct>` | `80` | Target success rate. The solver finds the highest WR that hits at least this success rate. |
-| `-r` | `--rebalance <method>` | `none` | `none` \| `monthly` \| `yearly` \| `threshold` |
+| `-r` | `--rebalance <method>` | `yearly` | `none` \| `monthly` \| `yearly` |
 | `-si` | `--ssa-income <dollars>` | `0` | Annual Social Security income (set to non-zero to enable). |
 | `-sa` | `--ssa-start-age <years>` | `0` | Age SSA income begins. Required if `--ssa-income > 0`. |
 | `-s` | `--smoothing <fraction>` | `0` | Max year-over-year change in spending, e.g. `0.10` = ±10%. Caps swings caused by market volatility. Requires `--prior-amount`. |
@@ -224,7 +224,7 @@ drawdown dynamic-dollar --balance 850000 \
 | `-sy` | `--start-year <year>` | `0` | Earliest historical backtest start year (`0` = use full data) |
 | `-ey` | `--end-year <year>` | `0` | Latest historical backtest start year (`0` = use full data) |
 | `-wf` | `--withdraw-frequency <n>` | `12` | `12` = yearly, `1` = monthly |
-| `-f` | `--fees <fraction>` | `0.001` | TER as a fraction (e.g. `0.001` = 0.1%) |
+| `-f` | `--fees <fraction>` | `0.0005` | TER as a fraction (e.g. `0.0005` = 0.05%, typical broad-market index ETF) |
 | `-st` | `--solver-tolerance <dollars>` | `1` | Binary-search stopping tolerance. Smaller = more iterations, more precision. |
 
 ## Output formats

@@ -8,15 +8,15 @@ Inputs
   Withdrawal rate:      4.0%
   Rebalance:            yearly
   Withdraw frequency:   yearly
-  Fees (TER):           0.1%
+  Fees (TER):           0.05%
 
 Results
-  Success rate:         96.2%
-  Successes:            1443
-  Failures:             57
-  Terminal value (avg): $3,612
-  Terminal value (median): $2,776
+  Success rate:         96.7%
+  Successes:            1450
+  Failures:             50
+  Terminal value (avg): $3,705
+  Terminal value (median): $2,837
   Terminal value (min): $0
-  Terminal value (max): $16,242
-  Worst duration (months): 301
-  Worst start year:     1965
+  Terminal value (max): $16,525
+  Worst duration (months): 313
+  Worst start year:     1901
