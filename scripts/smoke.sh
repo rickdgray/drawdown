@@ -68,4 +68,12 @@ run_one constant-percent \
     constant-percent --percent 4.0 --portfolio "us_stocks:60;us_bonds:40;" \
     --years 30 --rebalance yearly
 
+run_one coast \
+    coast --target 1000000 --years 20 \
+    --portfolio "us_stocks:80;us_bonds:20;"
+
+run_one accumulate \
+    accumulate --balance 100000 --contribution 3000 \
+    --target 1000000 --portfolio "us_stocks:80;us_bonds:20;"
+
 echo "Smoke: all checks passed"

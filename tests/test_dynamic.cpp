@@ -8,6 +8,7 @@
 //=======================================================================
 #include "test_assert.hpp"
 #include "dynamic.hpp"
+#include "growth.hpp"
 #include "cli.hpp"
 #include "output_formatter.hpp"
 #include <sstream>
@@ -683,6 +684,62 @@ TEST(evaluate_with_ssa_offset) {
     CHECK(!r.error);
     CHECK_NEAR(r.ssa_offset_this_year, 24000.0f, 0.01f);
     CHECK_NEAR(r.portfolio_withdrawal_this_year, 36000.0f, 0.01f);
+}
+
+TEST(growth_evaluate_zero_balance_zero_contribution_misses) {
+    swr::growth_input in;
+    in.initial_balance = 0.0f;
+    in.monthly_contribution = 0.0f;
+    in.target = 1.0f;
+    in.years = 10;
+    in.portfolio = swr::parse_portfolio("us_stocks:60;us_bonds:40;", false);
+    swr::normalize_portfolio(in.portfolio);
+    auto r = swr::evaluate_growth(in);
+    CHECK(!r.error);
+    CHECK_NEAR(r.probability_of_reaching_target, 0.0f, 0.01f);
+}
+
+TEST(growth_evaluate_target_already_met) {
+    swr::growth_input in;
+    in.initial_balance = 10000000.0f;
+    in.monthly_contribution = 0.0f;
+    in.target = 1.0f;
+    in.years = 5;
+    in.portfolio = swr::parse_portfolio("us_stocks:60;us_bonds:40;", false);
+    swr::normalize_portfolio(in.portfolio);
+    auto r = swr::evaluate_growth(in);
+    CHECK(!r.error);
+    CHECK_NEAR(r.probability_of_reaching_target, 100.0f, 0.01f);
+}
+
+TEST(coast_solve_finds_balance_below_target) {
+    swr::coast_input in;
+    in.base.target = 1000000.0f;
+    in.base.years  = 20;
+    in.base.portfolio = swr::parse_portfolio("us_stocks:80;us_bonds:20;", false);
+    swr::normalize_portfolio(in.base.portfolio);
+    in.target_success = 80.0f;
+    auto r = swr::solve_coast(in);
+    CHECK(!r.error);
+    // Real-return growth over 20 years should let you start well below target.
+    CHECK(r.required_balance > 50000.0f);
+    CHECK(r.required_balance < 1000000.0f);
+    CHECK(r.probability_at_result >= 80.0f);
+}
+
+TEST(accumulate_solve_finds_reasonable_year) {
+    swr::accumulate_input in;
+    in.base.initial_balance = 100000.0f;
+    in.base.monthly_contribution = 3000.0f;
+    in.base.target = 1000000.0f;
+    in.base.portfolio = swr::parse_portfolio("us_stocks:80;us_bonds:20;", false);
+    swr::normalize_portfolio(in.base.portfolio);
+    in.target_success = 80.0f;
+    auto r = swr::solve_accumulate(in);
+    CHECK(!r.error);
+    CHECK(r.required_years >= 5);
+    CHECK(r.required_years <= 40);
+    CHECK(r.probability_at_result >= 80.0f);
 }
 
 TEST(embedded_us_stocks_first_and_last_data_points) {

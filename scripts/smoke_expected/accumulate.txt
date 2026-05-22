@@ -1,0 +1,17 @@
+accumulate
+
+Inputs
+  Current balance:      $100,000
+  Monthly contribution: $3,000
+  Target:               $1,000,000
+  Portfolio:            us_stocks:80;us_bonds:20;
+  Inflation series:     us_inflation
+  Rebalance:            yearly
+  Target success:       80.0%
+
+Results
+  Years to target:      17 years
+  Probability at result: 82.7%
+  Median terminal:      $1,333,480
+  Min terminal:         $536,090
+  Max terminal:         $3,058,370

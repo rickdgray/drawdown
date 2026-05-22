@@ -1,0 +1,16 @@
+coast
+
+Inputs
+  Target:               $1,000,000
+  Years:                20 years
+  Portfolio:            us_stocks:80;us_bonds:20;
+  Inflation series:     us_inflation
+  Rebalance:            yearly
+  Target success:       80.0%
+
+Results
+  Required balance:     $510,071
+  Probability at result: 80.1%
+  Median terminal:      $1,671,050
+  Min terminal:         $497,206
+  Max terminal:         $4,902,744

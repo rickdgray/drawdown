@@ -35,6 +35,8 @@ int main(int argc, const char* argv[]) {
                   << "  constant-percent      Fixed % of current balance each year\n"
                   << "  dynamic-dollar        Per-year sustainable withdrawal\n"
                   << "  dynamic-success       Success probability for a given budget\n"
+                  << "  coast                 Lump sum needed to coast to a retirement target\n"
+                  << "  accumulate            Years to reach a target with contributions\n"
                   << "\nRun '<command> --help' for command-specific options.\n";
         return 1;
     }
@@ -46,6 +48,8 @@ int main(int argc, const char* argv[]) {
     else if (command == "dynamic-success")  return swr::cmd::dynamic_success(sub_args);
     else if (command == "constant-dollar")  return swr::cmd::constant_dollar(sub_args);
     else if (command == "constant-percent") return swr::cmd::constant_percent(sub_args);
+    else if (command == "coast")            return swr::cmd::coast(sub_args);
+    else if (command == "accumulate")       return swr::cmd::accumulate(sub_args);
 
     std::cout << "Unhandled command \"" << command << "\"\n";
     return 1;

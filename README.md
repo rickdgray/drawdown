@@ -4,12 +4,14 @@
 
 Compute sustainable retirement withdrawals using historical backtesting against US market data (stocks, bonds, inflation, plus several alternatives).
 
-Four CLI commands answer four different questions:
+Six CLI commands answer six different questions:
 
 - **`constant-dollar`**: "If I withdraw X% per year (inflation-adjusted), how often does that survive my horizon?" (The 4% rule.)
 - **`constant-percent`**: "If I withdraw X% of my current balance each year, how often does that survive?"
 - **`dynamic-dollar`**: "Given my current balance and remaining years, how much can I sustainably spend this year?"
 - **`dynamic-success`**: "Given my balance and a planned budget, how likely is that budget to survive my remaining years?"
+- **`coast`**: "Given a retirement target and a horizon, what lump sum today would coast there with no further contributions?"
+- **`accumulate`**: "Given a balance and monthly contributions, how long until I reach my target?"
 
 ## Quick start
 
@@ -298,9 +300,135 @@ drawdown dynamic-success --balance 850000 \
 | `-f` | `--fees <fraction>` | `0.0005` | TER as a fraction (e.g. `0.0005` = 0.05%, typical broad-market index ETF) |
 | `-st` | `--solver-tolerance <dollars>` | `1` | Comparison binary-search stopping tolerance. Smaller = more iterations, more precision. |
 
+---
+
+### `coast`: lump sum needed to coast to a retirement target
+
+Given a retirement target and a horizon, find the lump sum you need today so that the portfolio grows to the target with no further contributions. Uses historical backtesting with real-dollar (inflation-adjusted) accounting throughout. Solves via binary search.
+
+#### Examples
+
+"I want $1M in 20 years — how much do I need now?" (short flags):
+
+```
+drawdown coast --target 1000000 --years 20 --portfolio "us_stocks:80;us_bonds:20;"
+```
+
+Derive years from current age and retirement age:
+
+```
+drawdown coast --target 2500000 \
+    --current-age 33 --retirement-age 50 \
+    --portfolio "us_stocks:80;us_bonds:20;" \
+    --target-success 90
+```
+
+Evaluate the probability at a specific balance rather than solving:
+
+```
+drawdown coast --target 1000000 --years 20 \
+    --portfolio "us_stocks:80;us_bonds:20;" \
+    --balance 400000
+```
+
+#### Flags
+
+**Required:**
+
+| Short | Long | Meaning |
+|---|---|---|
+| `-tg` | `--target <dollars>` | Retirement target in today's dollars |
+| `-p` | `--portfolio <spec>` | Portfolio spec, e.g. `"us_stocks:80;us_bonds:20;"` |
+
+**Common:**
+
+| Short | Long | Default | Meaning |
+|---|---|---|---|
+| `-y` | `--years <int>` | `0` | Horizon in years (alternative to `--current-age` + `--retirement-age`) |
+| `-a` | `--current-age <float>` | `0` | Current age (used with `--retirement-age` to derive years) |
+| `-ra` | `--retirement-age <int>` | `0` | Retirement age (used with `--current-age` to derive years) |
+| `-b` | `--balance <dollars>` | `0` | If set, skip solving and report probability at this balance |
+| `-i` | `--inflation <series>` | `us_inflation` | Inflation series |
+| `-r` | `--rebalance <method>` | `yearly` | `none` \| `monthly` \| `yearly` |
+| `-t` | `--target-success <pct>` | `80` | Target success rate. The solver finds the lowest balance that meets this. |
+| `-j` | `--json` | — | Emit JSON instead of text |
+| `-c` | `--csv` | — | Emit CSV per-path output instead of text |
+
+**Advanced:**
+
+| Short | Long | Default | Meaning |
+|---|---|---|---|
+| `-sy` | `--start-year <year>` | `0` | Earliest historical backtest start year |
+| `-ey` | `--end-year <year>` | `0` | Latest historical backtest start year |
+| `-smb` | `--search-max-balance <dollars>` | `0` | Upper bound for binary search (`0` = `2 × target`) |
+| `-bt` | `--balance-tolerance <dollars>` | `100` | Binary-search stopping tolerance |
+
+---
+
+### `accumulate`: years to reach a target with contributions
+
+Given a current balance and a fixed monthly contribution (constant in real, inflation-adjusted terms), find how many years it takes to reach the target with at least the specified success probability. Scans year-by-year.
+
+#### Examples
+
+"I have $100K and add $3K/month — how long to $1M?" (short flags):
+
+```
+drawdown accumulate --balance 100000 --contribution 3000 \
+    --target 1000000 --portfolio "us_stocks:80;us_bonds:20;"
+```
+
+With current age to project the year you'll reach the target:
+
+```
+drawdown accumulate --balance 519000 --contribution 5083 \
+    --target 2500000 \
+    --portfolio "us_stocks:80;us_bonds:20;" \
+    --current-age 33
+```
+
+Using a 90% success target:
+
+```
+drawdown accumulate --balance 100000 --contribution 3000 \
+    --target 1000000 \
+    --portfolio "us_stocks:80;us_bonds:20;" \
+    --target-success 90
+```
+
+#### Flags
+
+**Required:**
+
+| Short | Long | Meaning |
+|---|---|---|
+| `-b` | `--balance <dollars>` | Current portfolio balance (today's dollars) |
+| `-mc` | `--contribution <dollars>` | Monthly contribution (today's dollars, constant in real terms) |
+| `-tg` | `--target <dollars>` | Target balance (today's dollars) |
+| `-p` | `--portfolio <spec>` | Portfolio spec, e.g. `"us_stocks:80;us_bonds:20;"` |
+
+**Common:**
+
+| Short | Long | Default | Meaning |
+|---|---|---|---|
+| `-i` | `--inflation <series>` | `us_inflation` | Inflation series |
+| `-r` | `--rebalance <method>` | `yearly` | `none` \| `monthly` \| `yearly` |
+| `-t` | `--target-success <pct>` | `80` | Target success rate. The solver returns the first year that hits this. |
+| `-a` | `--current-age <float>` | `0` | Current age. If set, output includes the projected age you reach the target. |
+| `-j` | `--json` | — | Emit JSON instead of text |
+| `-c` | `--csv` | — | Emit CSV per-path output instead of text |
+
+**Advanced:**
+
+| Short | Long | Default | Meaning |
+|---|---|---|---|
+| `-sy` | `--start-year <year>` | `0` | Earliest historical backtest start year |
+| `-ey` | `--end-year <year>` | `0` | Latest historical backtest start year |
+| `-my` | `--max-years <int>` | `60` | Maximum years to scan before giving up |
+
 ## Output formats
 
-All four commands support three output modes. `--json` and `--csv` are mutually exclusive.
+All six commands support three output modes. `--json` and `--csv` are mutually exclusive.
 
 | Mode | Flag | Format |
 |---|---|---|
