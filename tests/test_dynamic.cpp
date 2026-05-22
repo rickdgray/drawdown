@@ -596,6 +596,95 @@ TEST(compute_with_smoothing_inside_band_unchanged) {
 
 // --- Embedded data sanity
 
+// --- evaluate() tests
+
+TEST(evaluate_at_known_safe_budget) {
+    // For a $1M portfolio, age 65→90, $40K/yr should comfortably hit
+    // 80%+ success on a 60/40.
+    swr::evaluate_input in;
+    in.current_balance = 1000000.0f;
+    in.current_age     = 65.0f;
+    in.end_age         = 90;
+    in.budget          = 40000.0f;
+    in.portfolio       = swr::parse_portfolio("us_stocks:60;us_bonds:40;", false);
+    swr::normalize_portfolio(in.portfolio);
+    in.inflation       = "us_inflation";
+    in.rebalance       = swr::Rebalancing::YEARLY;
+    auto r = swr::evaluate(in);
+    CHECK(!r.error);
+    CHECK_EQ(r.remaining_horizon_years, (size_t)25);
+    CHECK(r.probability_of_success > 80.0f);
+    CHECK_NEAR(r.budget, 40000.0f, 0.01f);
+}
+
+TEST(evaluate_at_known_risky_budget) {
+    // $80K from $1M (8% WR) is dangerously high; expect probability below 80%.
+    swr::evaluate_input in;
+    in.current_balance = 1000000.0f;
+    in.current_age     = 65.0f;
+    in.end_age         = 90;
+    in.budget          = 80000.0f;
+    in.portfolio       = swr::parse_portfolio("us_stocks:60;us_bonds:40;", false);
+    swr::normalize_portfolio(in.portfolio);
+    in.inflation       = "us_inflation";
+    in.rebalance       = swr::Rebalancing::YEARLY;
+    auto r = swr::evaluate(in);
+    CHECK(!r.error);
+    CHECK(r.probability_of_success < 80.0f);
+}
+
+TEST(evaluate_comparison_max_budget_matches_dynamic_dollar) {
+    // The "max budget at 80%" comparison field should match dynamic_dollar's
+    // raw_calculated_withdrawal for the same scenario.
+    swr::evaluate_input ein;
+    ein.current_balance = 1000000.0f;
+    ein.current_age     = 65.0f;
+    ein.end_age         = 90;
+    ein.budget          = 50000.0f; // arbitrary
+    ein.portfolio       = swr::parse_portfolio("us_stocks:60;us_bonds:40;", false);
+    swr::normalize_portfolio(ein.portfolio);
+    ein.inflation       = "us_inflation";
+    ein.rebalance       = swr::Rebalancing::YEARLY;
+    ein.comparison_target_success = 80.0f;
+    auto er = swr::evaluate(ein);
+    CHECK(!er.error);
+
+    swr::dynamic_input din;
+    din.current_balance = 1000000.0f;
+    din.current_age     = 65.0f;
+    din.end_age         = 90;
+    din.portfolio       = ein.portfolio;
+    din.inflation       = "us_inflation";
+    din.rebalance       = swr::Rebalancing::YEARLY;
+    din.target_success  = 80.0f;
+    din.fees            = ein.fees;  // match evaluate_input defaults
+    auto dr = swr::compute(din);
+    CHECK(!dr.error);
+
+    // Allow $200 tolerance (binary search residual on both sides).
+    CHECK_NEAR(er.comparison_max_budget, dr.raw_calculated_withdrawal, 200.0f);
+}
+
+TEST(evaluate_with_ssa_offset) {
+    // current_age 72, ssa starts at 70 — SSA is active.
+    swr::evaluate_input in;
+    in.current_balance = 850000.0f;
+    in.current_age     = 72.0f;
+    in.end_age         = 92;
+    in.budget          = 60000.0f;
+    in.portfolio       = swr::parse_portfolio("us_stocks:60;us_bonds:40;", false);
+    swr::normalize_portfolio(in.portfolio);
+    in.inflation       = "us_inflation";
+    in.rebalance       = swr::Rebalancing::YEARLY;
+    in.ssa_enabled       = true;
+    in.ssa_annual_income = 24000.0f;
+    in.ssa_start_age     = 70;
+    auto r = swr::evaluate(in);
+    CHECK(!r.error);
+    CHECK_NEAR(r.ssa_offset_this_year, 24000.0f, 0.01f);
+    CHECK_NEAR(r.portfolio_withdrawal_this_year, 36000.0f, 0.01f);
+}
+
 TEST(embedded_us_stocks_first_and_last_data_points) {
     // load_values() normalises and converts to monthly return ratios, so we
     // check the shape of the data rather than raw CSV values.

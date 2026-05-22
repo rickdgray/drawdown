@@ -1,0 +1,22 @@
+dynamic-success
+
+Inputs
+  Current balance:      $850,000
+  Current age:          67.00
+  End age:              92
+  Remaining horizon:    25 years
+  Annual budget:        $50,000
+  Comparison target:    80.0%
+  Portfolio:            us_stocks:60;us_bonds:40;
+  Inflation series:     us_inflation
+  Rebalance:            yearly
+  Withdraw frequency:   yearly
+  Fees (TER):           0.05%
+
+Results
+  Probability of success: 65.8%
+  Verdict:              below 80.0% target — budget is risky
+  Max budget at 80.0%:  $43,774
+  SSA offset this year: $0
+  Portfolio withdrawal: $50,000
+  Signal vs prior:      none

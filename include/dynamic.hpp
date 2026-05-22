@@ -91,4 +91,61 @@ float  apply_smoothing(float raw, float prior_year_amount,
                        float max_change, bool* applied_out);
 Signal classify_signal(float final_budget, float prior_year_amount);
 
+struct evaluate_input {
+    // Portfolio state
+    float                   current_balance     = 0.0f;
+    float                   current_age         = 0.0f;
+    size_t                  end_age             = 0;
+
+    // Portfolio composition + data window
+    std::vector<allocation> portfolio;
+    std::string             inflation;
+    Rebalancing             rebalance             = Rebalancing::YEARLY;
+    size_t                  historical_start_year = 0;
+    size_t                  historical_end_year   = 0;
+
+    // The thing under evaluation
+    float                   budget              = 0.0f;
+
+    // SSA (single person)
+    bool                    ssa_enabled         = false;
+    float                   ssa_annual_income   = 0.0f;
+    size_t                  ssa_start_age       = 0;
+
+    // For the signal field
+    float                   prior_year_amount   = 0.0f;
+
+    // For the comparison max-budget figure
+    float                   comparison_target_success = 80.0f;
+
+    // Engine config
+    size_t                  withdraw_frequency  = 12;
+    float                   fees                = 0.0005f;
+    float                   solver_tolerance    = 1.0f;
+    float                   solver_min_wr_pct   = 0.5f;
+    float                   solver_max_wr_pct   = 20.0f;
+};
+
+struct evaluate_result {
+    size_t  remaining_horizon_years        = 0;
+    float   budget                         = 0.0f;     // echo of input
+    float   probability_of_success         = 0.0f;
+    float   ssa_offset_this_year           = 0.0f;
+    float   portfolio_withdrawal_this_year = 0.0f;
+    Signal  signal                         = Signal::NONE;
+
+    // Comparison: max budget at the comparison target success rate
+    float   comparison_target_success      = 0.0f;
+    float   comparison_max_budget          = 0.0f;     // result of the inverse solve
+    bool    comparison_supported           = true;     // false if even min WR fails target
+
+    // Per-path detail at the user's exact budget (populated when requested).
+    std::vector<per_path_detail> per_path_details;
+
+    bool        error = false;
+    std::string message;
+};
+
+evaluate_result evaluate(const evaluate_input& input, bool collect_per_path = false);
+
 } // namespace swr

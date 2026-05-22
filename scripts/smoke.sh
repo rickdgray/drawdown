@@ -56,6 +56,10 @@ run_one dynamic-dollar \
     --portfolio "us_stocks:60;us_bonds:40;" \
     --rebalance yearly
 
+run_one dynamic-success \
+    dynamic-success --balance 850000 --current-age 67 --end-age 92 \
+    --budget 50000 --portfolio "us_stocks:60;us_bonds:40;"
+
 run_one constant-dollar \
     constant-dollar --withdrawal-rate 4.0 --portfolio "us_stocks:60;us_bonds:40;" \
     --years 30 --rebalance yearly

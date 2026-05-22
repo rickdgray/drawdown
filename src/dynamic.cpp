@@ -249,4 +249,135 @@ dynamic_result compute(const dynamic_input& input, bool collect_per_path) {
     return r;
 }
 
+evaluate_result evaluate(const evaluate_input& input, bool collect_per_path) {
+    evaluate_result r;
+
+    // --- Validation
+    if (input.budget <= 0.0f) {
+        r.error = true;
+        r.message = "budget must be positive";
+        return r;
+    }
+    if (input.current_age >= static_cast<float>(input.end_age)) {
+        r.error = true;
+        r.message = "current_age must be < end_age";
+        return r;
+    }
+    if (input.current_balance <= 0.0f) {
+        r.error = true;
+        r.message = "current_balance must be positive";
+        return r;
+    }
+
+    r.remaining_horizon_years = compute_remaining_horizon(input.current_age,
+                                                          input.end_age);
+    if (r.remaining_horizon_years == 0) {
+        r.error = true;
+        r.message = "remaining horizon is 0 years";
+        return r;
+    }
+
+    r.budget = input.budget;
+    r.comparison_target_success = input.comparison_target_success;
+
+    // --- Build the scenario (same as compute())
+    scenario sc;
+    sc.portfolio          = input.portfolio;
+    sc.years              = r.remaining_horizon_years;
+    sc.rebalance          = input.rebalance;
+    sc.initial_value      = input.current_balance;
+    sc.withdraw_frequency = input.withdraw_frequency;
+    sc.fees               = input.fees;
+    sc.wmethod            = WithdrawalMethod::STANDARD;
+    sc.values         = load_values(sc.portfolio);
+    sc.inflation_data = load_inflation(sc.values, input.inflation);
+
+    if (input.historical_start_year > 0)
+        sc.start_year = input.historical_start_year;
+    else
+        sc.start_year = sc.inflation_data.front().year;
+    if (input.historical_end_year > 0)
+        sc.end_year = input.historical_end_year;
+    else
+        sc.end_year = sc.inflation_data.back().year;
+
+    // SSA mapping
+    size_t social_delay = 0;
+    if (input.ssa_enabled && input.ssa_annual_income > 0.0f) {
+        sc.social_security = true;
+        sc.social_coverage = 0.0f;
+        sc.social_amount   = input.ssa_annual_income;
+        social_delay = compute_social_delay(input.current_age,
+                                            input.ssa_start_age);
+        sc.social_delay    = social_delay;
+    }
+
+    // --- Single simulation at the requested budget
+    float budget_wr_pct = (input.budget / input.current_balance) * 100.0f;
+    sc.wr = budget_wr_pct;
+    auto results = swr::simulation(sc);
+    r.probability_of_success = results.success_rate;
+
+    // --- Per-path detail at the user's exact budget
+    if (collect_per_path) {
+        size_t idx = 0;
+        for (size_t y = sc.start_year;
+             y + sc.years <= sc.end_year && idx < results.terminal_values.size();
+             ++y) {
+            per_path_detail d;
+            d.start_year     = y;
+            d.start_month    = 1;
+            d.terminal_value = results.terminal_values[idx];
+            d.success        = d.terminal_value > 0.0f;
+            d.total_withdrawn = results.withdrawn_per_year * sc.years;
+            d.worst_duration_months = 0;
+            r.per_path_details.push_back(d);
+            ++idx;
+        }
+    }
+
+    // --- SSA offset this year
+    if (input.ssa_enabled && social_delay == 0) {
+        r.ssa_offset_this_year = input.ssa_annual_income;
+    } else {
+        r.ssa_offset_this_year = 0.0f;
+    }
+    r.portfolio_withdrawal_this_year = input.budget - r.ssa_offset_this_year;
+
+    // --- Signal
+    r.signal = classify_signal(input.budget, input.prior_year_amount);
+
+    // --- Comparison: binary search for max budget at comparison_target_success
+    float low  = input.solver_min_wr_pct;
+    float high = input.solver_max_wr_pct;
+    float tol_pct = (input.solver_tolerance / input.current_balance) * 100.0f;
+    if (tol_pct <= 0.0f) tol_pct = 0.0001f;
+
+    float success_at_low = run_simulation_get_success(sc, low);
+    if (success_at_low < input.comparison_target_success) {
+        r.comparison_supported = false;
+        r.comparison_max_budget = 0.0f;
+    } else {
+        r.comparison_supported = true;
+
+        float success_at_high = run_simulation_get_success(sc, high);
+        if (success_at_high >= input.comparison_target_success) {
+            r.comparison_max_budget = (high / 100.0f) * input.current_balance;
+        } else {
+            while ((high - low) > tol_pct) {
+                float mid = (low + high) / 2.0f;
+                float succ = run_simulation_get_success(sc, mid);
+                if (succ >= input.comparison_target_success) {
+                    low = mid;
+                } else {
+                    high = mid;
+                }
+            }
+            r.comparison_max_budget = (low / 100.0f) * input.current_balance;
+        }
+    }
+
+    return r;
+}
+
 } // namespace swr

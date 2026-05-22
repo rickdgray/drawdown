@@ -15,6 +15,7 @@
 namespace swr::cmd {
 
 int dynamic_dollar(const std::vector<std::string>& args);
+int dynamic_success(const std::vector<std::string>& args);
 int constant_dollar(const std::vector<std::string>& args);
 int constant_percent(const std::vector<std::string>& args);
 

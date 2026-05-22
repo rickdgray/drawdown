@@ -4,11 +4,12 @@
 
 Compute sustainable retirement withdrawals using historical backtesting against US market data (stocks, bonds, inflation, plus several alternatives).
 
-Three CLI commands answer three different questions:
+Four CLI commands answer four different questions:
 
 - **`constant-dollar`**: "If I withdraw X% per year (inflation-adjusted), how often does that survive my horizon?" (The 4% rule.)
 - **`constant-percent`**: "If I withdraw X% of my current balance each year, how often does that survive?"
 - **`dynamic-dollar`**: "Given my current balance and remaining years, how much can I sustainably spend this year?"
+- **`dynamic-success`**: "Given my balance and a planned budget, how likely is that budget to survive my remaining years?"
 
 ## Quick start
 
@@ -227,9 +228,79 @@ drawdown dynamic-dollar --balance 850000 \
 | `-f` | `--fees <fraction>` | `0.0005` | TER as a fraction (e.g. `0.0005` = 0.05%, typical broad-market index ETF) |
 | `-st` | `--solver-tolerance <dollars>` | `1` | Binary-search stopping tolerance. Smaller = more iterations, more precision. |
 
+---
+
+### `dynamic-success`: success probability for a planned budget
+
+The inverse of `dynamic-dollar`. Given the current portfolio balance, current age, fixed end age, and a planned annual spending budget, return the historical probability that budget survives the remaining horizon. Also reports the maximum sustainable budget at a comparison target success rate, so you can see your planned budget alongside the historically safe threshold.
+
+#### Examples
+
+The basic question: "I'm 67, have $850K, plan to live until 92, and want to spend $50K/year. How likely is that?" (short flags):
+
+```
+drawdown dynamic-success -b 850000 -a 67 -e 92 -bd 50000 -p "us_stocks:60;us_bonds:40;"
+```
+
+With Social Security starting at age 70 ($24K/year), checking a $60K total budget:
+
+```
+drawdown dynamic-success --balance 850000 \
+    --current-age 67 --end-age 92 \
+    --budget 60000 \
+    --portfolio "us_stocks:60;us_bonds:40;" \
+    --inflation us_inflation \
+    --ssa-income 24000 --ssa-start-age 70
+```
+
+Checking a borderline budget vs a more conservative 90% comparison target:
+
+```
+drawdown dynamic-success --balance 850000 \
+    --current-age 67 --end-age 92 \
+    --budget 43000 \
+    --portfolio "us_stocks:60;us_bonds:40;" \
+    --target-success 90
+```
+
+#### Flags
+
+**Required:**
+
+| Short | Long | Meaning |
+|---|---|---|
+| `-b` | `--balance <dollars>` | Current portfolio balance |
+| `-a` | `--current-age <years>` | Your current age (float allowed, e.g. `67.5`) |
+| `-e` | `--end-age <years>` | Planning end age (integer) |
+| `-bd` | `--budget <dollars>` | Annual planned spending budget |
+| `-p` | `--portfolio <spec>` | Portfolio spec, e.g. `"us_stocks:60;us_bonds:40;"` |
+
+**Common:**
+
+| Short | Long | Default | Meaning |
+|---|---|---|---|
+| `-i` | `--inflation <series>` | `us_inflation` | Name of an inflation series (embedded or user-supplied) |
+| `-t` | `--target-success <pct>` | `80` | Comparison target success rate. The output shows the max budget at this rate alongside your planned budget. |
+| `-r` | `--rebalance <method>` | `yearly` | `none` \| `monthly` \| `yearly` |
+| `-si` | `--ssa-income <dollars>` | `0` | Annual Social Security income (set to non-zero to enable). |
+| `-sa` | `--ssa-start-age <years>` | `0` | Age SSA income begins. Required if `--ssa-income > 0`. |
+| `-pa` | `--prior-amount <dollars>` | `0` | Last year's spending budget. When set, populates the *signal* field (`increase` / `hold` / `decrease`). |
+| `-j` | `--json` | — | Emit JSON instead of text |
+| `-c` | `--csv` | — | Emit CSV per-path output instead of text |
+
+**Advanced:**
+
+| Short | Long | Default | Meaning |
+|---|---|---|---|
+| `-sy` | `--start-year <year>` | `0` | Earliest historical backtest start year (`0` = use full data) |
+| `-ey` | `--end-year <year>` | `0` | Latest historical backtest start year (`0` = use full data) |
+| `-wf` | `--withdraw-frequency <n>` | `12` | `12` = yearly, `1` = monthly |
+| `-f` | `--fees <fraction>` | `0.0005` | TER as a fraction (e.g. `0.0005` = 0.05%, typical broad-market index ETF) |
+| `-st` | `--solver-tolerance <dollars>` | `1` | Comparison binary-search stopping tolerance. Smaller = more iterations, more precision. |
+
 ## Output formats
 
-All three commands support three output modes. `--json` and `--csv` are mutually exclusive.
+All four commands support three output modes. `--json` and `--csv` are mutually exclusive.
 
 | Mode | Flag | Format |
 |---|---|---|
