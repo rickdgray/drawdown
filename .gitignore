@@ -4,4 +4,3 @@ release_debug
 .cache
 *.plist
 compile_commands.json
-.vscode

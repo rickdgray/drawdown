@@ -1,0 +1,21 @@
+{
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "build drawdown",
+            "command": "make",
+            "args": [
+                "-C", "${workspaceFolder}"
+            ],
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Task to call make and build debug."
+        }
+    ],
+    "version": "2.0.0"
+}
